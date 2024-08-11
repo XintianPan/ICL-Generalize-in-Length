@@ -12,7 +12,7 @@ palette = sns.color_palette("colorblind")
 
 relevant_model_names = {
     "linear_regression": [
-        "Transformer",
+        "Transformer-xs",
         "Least Squares",
         "3-Nearest Neighbors",
         "Averaging",
@@ -42,6 +42,8 @@ relevant_model_names = {
 
 def basic_plot(metrics, models=None, trivial=1.0):
     fig, ax = plt.subplots(1, 1)
+    print(models)
+    print(metrics)
 
     if models is not None:
         metrics = {k: metrics[k] for k in models}
@@ -90,8 +92,10 @@ def collect_results(run_dir, df, valid_row=None, rename_eval=None, rename_model=
                     model_name = baseline_names(model_name)
                 m_processed = {}
                 n_dims = conf.model.n_dims
+                n_points = conf.model.n_positions
 
-                xlim = 2 * n_dims + 1
+                xlim = n_points
+                
                 if r.task in ["relu_2nn_regression", "decision_tree"]:
                     xlim = 200
 
@@ -100,7 +104,7 @@ def collect_results(run_dir, df, valid_row=None, rename_eval=None, rename_model=
                     normalization = int(r.kwargs.split("=")[-1])
                 if r.task == "decision_tree":
                     normalization = 1
-
+                
                 for k, v in m.items():
                     v = v[:xlim]
                     v = [vv / normalization for vv in v]

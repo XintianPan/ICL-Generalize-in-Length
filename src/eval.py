@@ -169,6 +169,10 @@ def eval_model(
        - **sampler_kwargs: remaining arguments to pass directly to the sampler
     """
 
+    print(n_points)
+    print(data_sampler_kwargs)
+    print(task_sampler_kwargs)
+
     assert num_eval_examples % batch_size == 0
     data_sampler = get_data_sampler(data_name, n_dims, **data_sampler_kwargs)
     task_sampler = get_task_sampler(
@@ -191,8 +195,9 @@ def eval_model(
 
 def build_evals(conf):
     n_dims = conf.model.n_dims
-    n_points = conf.training.curriculum.points.end
+    n_points = conf.model.n_positions - 1
     batch_size = conf.training.batch_size
+    print(n_points)
 
     task_name = conf.training.task
     data_name = conf.training.data
@@ -300,6 +305,8 @@ def get_run_metrics(
         if not skip_baselines:
             all_models += models.get_relevant_baselines(conf.training.task)
     evaluation_kwargs = build_evals(conf)
+    print(evaluation_kwargs)
+    print("Eval Here")
 
     if not cache:
         save_path = None
@@ -385,7 +392,10 @@ def read_run_dir(run_dir):
                     all_runs[k] = []
                 all_runs[k].append(v)
 
+
     df = pd.DataFrame(all_runs).sort_values("run_name")
+    print(len(df))
+    print(len(df.run_name.unique()))
     assert len(df) == len(df.run_name.unique())
     return df
 

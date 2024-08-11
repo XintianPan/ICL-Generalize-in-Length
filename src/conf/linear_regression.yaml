@@ -6,11 +6,11 @@ training:
     curriculum:
         points:
             start: 11
-            end: 41
+            end: 40
             inc: 2
             interval: 2000
 
 out_dir: ../models/linear_regression
 
 wandb:
-    name: "linear_regression_standard"
+    name: "linear_regression_tiny_5d_ex40_t500_11"

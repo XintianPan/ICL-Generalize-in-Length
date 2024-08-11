@@ -1,5 +1,5 @@
 wandb:
     project: in-context-training
-    entity: your-entity
+    entity: iamxintianpan-nanjing-university
     notes:
     log_every_steps: 100

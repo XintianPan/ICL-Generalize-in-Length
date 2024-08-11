@@ -14,4 +14,4 @@ training:
 out_dir: ../models/decision_tree
 
 wandb:
-    name: "decision_tree_standard"
+    name: "decision_tree_"
