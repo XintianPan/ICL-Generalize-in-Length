@@ -21,11 +21,38 @@ torch.backends.cudnn.benchmark = True
 
 def train_step(model, xs, ys, optimizer, loss_func):
     optimizer.zero_grad()
-    output = model(xs, ys)
-    loss = loss_func(output, ys)
-    loss.backward()
+
+    bsize, n_points, dims = xs.shape
+    losses = []
+    for i in range(n_points - 1):
+        # print(xs[:, 0:i, :])
+        # # print(xs[:, -1, :])
+        # print(xs[:, 0:0, :].shape)
+        # print(xs[:, 0, :].shape)
+
+        new_xs = torch.cat(
+            (
+                xs[:, 0:i + 1, :],
+                xs[:, n_points - 1:n_points, :]
+            ),
+            axis=1
+        )
+        new_ys = torch.cat(
+            (
+                ys[:, 0: i + 1],
+                torch.zeros(bsize, 1, device=ys.device)
+            ),
+            axis=1
+        )
+        output = model(new_xs, new_ys)
+        loss = loss_func(output, ys[:, -1])
+        losses.append(loss)
+
+
+    loss_total = sum(losses)
+    loss_total.backward()
     optimizer.step()
-    return loss.detach().item(), output.detach()
+    return loss_total.detach().item(), output.detach()
 
 
 def sample_seeds(total_seeds, count):
@@ -88,26 +115,26 @@ def train(model, args):
 
         loss, output = train_step(model, xs.cuda(), ys.cuda(), optimizer, loss_func)
 
-        point_wise_tags = list(range(curriculum.n_points))
-        point_wise_loss_func = task.get_metric()
-        point_wise_loss = point_wise_loss_func(output, ys.cuda()).mean(dim=0)
+        # point_wise_tags = list(range(curriculum.n_points))
+        # point_wise_loss_func = task.get_metric()
+        # point_wise_loss = point_wise_loss_func(output, ys.cuda()).mean(dim=0)
 
-        baseline_loss = (
-            sum(
-                max(curriculum.n_dims_truncated - ii, 0)
-                for ii in range(curriculum.n_points)
-            )
-            / curriculum.n_points
-        )
+        # baseline_loss = (
+        #     sum(
+        #         max(curriculum.n_dims_truncated - ii, 0)
+        #         for ii in range(curriculum.n_points)
+        #     )
+        #     / curriculum.n_points
+        # )
 
         if i % args.wandb.log_every_steps == 0 and not args.test_run:
             wandb.log(
                 {
                     "overall_loss": loss,
-                    "excess_loss": loss / baseline_loss,
-                    "pointwise/loss": dict(
-                        zip(point_wise_tags, point_wise_loss.cpu().numpy())
-                    ),
+                    # "excess_loss": loss / baseline_loss,
+                    # "pointwise/loss": dict(
+                    #     zip(point_wise_tags, point_wise_loss.cpu().numpy())
+                    # ),
                     "n_points": curriculum.n_points,
                     "n_dims": curriculum.n_dims_truncated,
                 },

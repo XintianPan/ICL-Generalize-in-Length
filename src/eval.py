@@ -333,6 +333,9 @@ def conf_to_model_name(conf):
             (3, 2): "Transformer-xs",
             (6, 4): "Transformer-small",
             (12, 8): "Transformer",
+            (5, 8): "Transformer-five",
+            (3, 8): "Transformer-three",
+            (1, 8): "Transformer-one"
         }[(conf.model.n_layer, conf.model.n_head)]
     else:
         return conf.wandb.name

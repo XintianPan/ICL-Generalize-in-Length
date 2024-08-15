@@ -124,7 +124,8 @@ class TransformerModel(nn.Module):
         embeds = self._read_in(zs)
         output = self._backbone(inputs_embeds=embeds).last_hidden_state
         prediction = self._read_out(output)
-        return prediction[:, ::2, 0][:, inds]  # predict only on xs
+
+        return prediction[:, xs.shape[1] * 2 - 2, 0]  # predict only on xs
 
 
 class NNModel:

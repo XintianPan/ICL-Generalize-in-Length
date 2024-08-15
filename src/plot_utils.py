@@ -12,7 +12,7 @@ palette = sns.color_palette("colorblind")
 
 relevant_model_names = {
     "linear_regression": [
-        "Transformer-xs",
+        "Transformer",
         "Least Squares",
         "3-Nearest Neighbors",
         "Averaging",
