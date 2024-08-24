@@ -12,6 +12,7 @@ import yaml
 import models
 from samplers import get_data_sampler, sample_transformation
 from tasks import get_task_sampler
+import wandb
 
 
 def get_model_from_run(run_path, step=-1, only_conf=False):
@@ -169,9 +170,9 @@ def eval_model(
        - **sampler_kwargs: remaining arguments to pass directly to the sampler
     """
 
-    print(n_points)
-    print(data_sampler_kwargs)
-    print(task_sampler_kwargs)
+    # print(n_points)
+    # print(data_sampler_kwargs)
+    # print(task_sampler_kwargs)
 
     assert num_eval_examples % batch_size == 0
     data_sampler = get_data_sampler(data_name, n_dims, **data_sampler_kwargs)
@@ -197,7 +198,7 @@ def build_evals(conf):
     n_dims = conf.model.n_dims
     n_points = conf.model.n_positions - 1
     batch_size = conf.training.batch_size
-    print(n_points)
+    # print(n_points)
 
     task_name = conf.training.task
     data_name = conf.training.data
@@ -305,8 +306,8 @@ def get_run_metrics(
         if not skip_baselines:
             all_models += models.get_relevant_baselines(conf.training.task)
     evaluation_kwargs = build_evals(conf)
-    print(evaluation_kwargs)
-    print("Eval Here")
+    # print(evaluation_kwargs)
+    # print("Eval Here")
 
     if not cache:
         save_path = None
@@ -332,6 +333,9 @@ def conf_to_model_name(conf):
         return {
             (3, 2): "Transformer-xs",
             (6, 4): "Transformer-small",
+            (5, 8): "Transformer-five",
+            (3, 8): "Transformer-three",
+            (1, 8): "Transformer-one",
             (12, 8): "Transformer",
         }[(conf.model.n_layer, conf.model.n_head)]
     else:
@@ -394,9 +398,9 @@ def read_run_dir(run_dir):
 
 
     df = pd.DataFrame(all_runs).sort_values("run_name")
-    print(len(df))
-    print(len(df.run_name.unique()))
-    assert len(df) == len(df.run_name.unique())
+    # print(len(df))
+    # print(len(df.run_name.unique()))
+    # assert len(df) == len(df.run_name.unique())
     return df
 
 if __name__ == "__main__":

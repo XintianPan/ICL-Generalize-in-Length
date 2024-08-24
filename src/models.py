@@ -6,9 +6,12 @@ from sklearn.svm import LinearSVC
 from sklearn.linear_model import LogisticRegression, Lasso
 import warnings
 from sklearn import tree
+import random
 import xgboost as xgb
 
 from base_models import NeuralNetwork, ParallelNetworks
+
+from gpt2_nopos import GPT2ModelWithoutPositionEmbedding
 
 
 def build_model(conf):
@@ -90,12 +93,14 @@ class TransformerModel(nn.Module):
             attn_pdrop=0.0,
             use_cache=False,
         )
+
         self.name = f"gpt2_embd={n_embd}_layer={n_layer}_head={n_head}"
 
         self.n_positions = n_positions
         self.n_dims = n_dims
         self._read_in = nn.Linear(n_dims, n_embd)
-        self._backbone = GPT2Model(configuration)
+        self._backbone = GPT2ModelWithoutPositionEmbedding(configuration)
+        # self.wpe = nn.Embedding(configuration.max_position_embeddings, configuration.hidden_size)
         self._read_out = nn.Linear(n_embd, 1)
 
     @staticmethod
@@ -122,6 +127,22 @@ class TransformerModel(nn.Module):
                 raise ValueError("inds contain indices where xs and ys are not defined")
         zs = self._combine(xs, ys)
         embeds = self._read_in(zs)
+
+
+
+        input_shape = embeds.size()[:-1]
+
+        lst = [elem if elem < 40 else random.randint(0, 39) for elem in range(input_shape[-1])]
+
+
+        position_ids = torch.tensor(lst, dtype=torch.long, device=xs.device)
+
+        # position_ids = torch.zeros(input_shape[-1], dtype=torch.long, device=xs.device)
+        # position_ids = position_ids.unsqueeze(0)
+        position_ids = position_ids.unsqueeze(0).view(-1, input_shape[-1])
+        # position_embeds = self.wpe(position_ids)
+        # embeds = embeds - position_embeds
+
         output = self._backbone(inputs_embeds=embeds).last_hidden_state
         prediction = self._read_out(output)
         return prediction[:, ::2, 0][:, inds]  # predict only on xs
