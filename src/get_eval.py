@@ -19,7 +19,7 @@ if __name__ == "__main__":
     #task = "decision_tree"
     #task = "relu_2nn_regression"
 
-    run_id = "95968066-fd53-4975-b28c-142848e10054"  # if you train more models, replace with the run_id from the table above
+    run_id = "8705b0ae-5867-4c35-9c84-84f3a1e38a0e"  # if you train more models, replace with the run_id from the table above
 
     run_path = os.path.join(run_dir, task, run_id)
     get_run_metrics(run_path)  # these are normally precomputed at the end of training

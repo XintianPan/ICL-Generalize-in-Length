@@ -20,6 +20,7 @@ model_schema = {
     "n_embd": merge(tinteger, required),
     "n_layer": merge(tinteger, required),
     "n_head": merge(tinteger, required),
+    "type": merge(tstring, allowed(["stackxy", "nostack"]))
 }
 
 curriculum_base_schema = {

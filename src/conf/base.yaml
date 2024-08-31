@@ -3,8 +3,9 @@ inherit:
     - wandb.yaml
 
 model:
-    n_dims: 30
-    n_positions: 1001
+    n_dims: 15
+    n_positions: 501
+    type: stackxy
 
 training:
     data: gaussian
@@ -17,6 +18,6 @@ training:
     curriculum:
         dims:
             start: 5
-            end: 30
+            end: 15
             inc: 1
             interval: 2000

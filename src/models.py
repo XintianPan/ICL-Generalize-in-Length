@@ -16,13 +16,25 @@ from gpt2_nopos import GPT2ModelWithoutPositionEmbedding
 
 def build_model(conf):
     if conf.family == "gpt2":
-        model = TransformerModel(
+        if conf.type == "nostack":
+            model = TransformerModel(
             n_dims=conf.n_dims,
             n_positions=conf.n_positions,
             n_embd=conf.n_embd,
             n_layer=conf.n_layer,
             n_head=conf.n_head,
-        )
+            )
+        elif conf.type == "stackxy":
+            print("stacking method")
+            model = TransformerModelStackTogether(
+            n_dims=conf.n_dims,
+            n_positions=conf.n_positions,
+            n_embd=conf.n_embd,
+            n_layer=conf.n_layer,
+            n_head=conf.n_head,
+            )
+        else:
+            raise NotImplementedError        
     else:
         raise NotImplementedError
 
@@ -99,8 +111,7 @@ class TransformerModel(nn.Module):
         self.n_positions = n_positions
         self.n_dims = n_dims
         self._read_in = nn.Linear(n_dims, n_embd)
-        self._backbone = GPT2ModelWithoutPositionEmbedding(configuration)
-        # self.wpe = nn.Embedding(configuration.max_position_embeddings, configuration.hidden_size)
+        self._backbone = GPT2Model(configuration)
         self._read_out = nn.Linear(n_embd, 1)
 
     @staticmethod
@@ -125,15 +136,18 @@ class TransformerModel(nn.Module):
             inds = torch.tensor(inds)
             if max(inds) >= ys.shape[1] or min(inds) < 0:
                 raise ValueError("inds contain indices where xs and ys are not defined")
+        
         zs = self._combine(xs, ys)
         embeds = self._read_in(zs)
 
 
-
         input_shape = embeds.size()[:-1]
 
-        lst = [elem if elem < 40 else random.randint(0, 39) for elem in range(input_shape[-1])]
+        lst = [elem % 10 for elem in range(input_shape[-1])]
 
+        # lst = [elem if elem < 40 else random.randint(0, 39) for elem in range(input_shape[-1])]
+
+        # lst = [random.randint(0, 79) for elem in range(input_shape[-1])]
 
         position_ids = torch.tensor(lst, dtype=torch.long, device=xs.device)
 
@@ -143,9 +157,62 @@ class TransformerModel(nn.Module):
         # position_embeds = self.wpe(position_ids)
         # embeds = embeds - position_embeds
 
-        output = self._backbone(inputs_embeds=embeds).last_hidden_state
+        output = self._backbone(inputs_embeds=embeds, position_ids=position_ids).last_hidden_state
         prediction = self._read_out(output)
         return prediction[:, ::2, 0][:, inds]  # predict only on xs
+
+class TransformerModelStackTogether(nn.Module):
+    def __init__(self, n_dims, n_positions, n_embd=128, n_layer=12, n_head=4):
+        super(TransformerModelStackTogether, self).__init__()
+        configuration = GPT2Config(
+            n_positions=n_positions,
+            n_embd=n_embd,
+            n_layer=n_layer,
+            n_head=n_head,
+            resid_pdrop=0.0,
+            embd_pdrop=0.0,
+            attn_pdrop=0.0,
+            use_cache=False,
+        )
+
+        self.name = f"gpt2_embd={n_embd}_layer={n_layer}_head={n_head}"
+
+        self.n_positions = n_positions
+        self.n_dims = n_dims
+        self._read_in = nn.Linear(n_dims * 2, n_embd)
+        self._backbone = GPT2ModelWithoutPositionEmbedding(configuration)
+        self._read_out = nn.Linear(n_embd, 1)
+
+    @staticmethod
+    def _combine(xs_b, ys_b):
+        """Interleaves the x's and the y's into a single sequence."""
+        bsize, points, dim = xs_b.shape
+        ys_b_wide = torch.cat(
+            (
+                ys_b.view(bsize, points, 1),
+                torch.zeros(bsize, points, dim - 1, device=ys_b.device),
+            ),
+            axis=2,
+        )
+        zs = torch.cat((xs_b, ys_b_wide), axis=2)
+        return zs
+
+    def forward(self, xs, ys, inds=None):
+        if inds is None:
+            inds = torch.arange(ys.shape[1])
+        else:
+            inds = torch.tensor(inds)
+            if max(inds) >= ys.shape[1] or min(inds) < 0:
+                raise ValueError("inds contain indices where xs and ys are not defined")
+        
+        zs = self._combine(xs, ys)
+        print(zs.shape)
+        embeds = self._read_in(zs)
+
+
+        output = self._backbone(inputs_embeds=embeds).last_hidden_state
+        prediction = self._read_out(output)
+        return prediction[:, :, 0][:, inds]  # pair xs and ys, no need to extract xs's prediction
 
 
 class NNModel:

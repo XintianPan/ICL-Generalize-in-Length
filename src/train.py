@@ -21,7 +21,16 @@ torch.backends.cudnn.benchmark = True
 
 def train_step(model, xs, ys, optimizer, loss_func):
     optimizer.zero_grad()
-    output = model(xs, ys)
+    print(ys.shape)
+    b_size = ys.shape[0]
+    n_points = ys.shape[1]
+    ys_b = torch.cat(
+        ( ys[:, :n_points - 1],
+          torch.zeros(b_size, 1).to(ys.device)
+        ),
+        axis=1
+    )
+    output = model(xs, ys_b)
     loss = loss_func(output, ys)
     loss.backward()
     optimizer.step()
