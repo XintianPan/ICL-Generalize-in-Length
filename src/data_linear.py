@@ -75,10 +75,8 @@ class LinearReg(DataMethod):
             Any: The transformed data.
         """
         y = x[..., :, -1].clone()
-        print(x)
-        print(zero_index)
 
         if zero_index is not None:
             x[..., zero_index, -1] = 0
-        print(x)
+
         return x, y
