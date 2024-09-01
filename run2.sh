@@ -14,4 +14,4 @@ module load cuDNN
 # using your anaconda environment
 module load miniconda
 source activate in-context-learning
-python src/get_eval.py
+python src/dataset_base.py

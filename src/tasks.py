@@ -143,7 +143,7 @@ class SparseLinearRegression(LinearRegression):
             mask[perm[:sparsity]] = False
             w[mask] = 0
 
-    def evaluate(self, xs_b, zero_pos = None : Optional[int]):
+    def evaluate(self, xs_b):
         w_b = self.w_b.to(xs_b.device)
         ys_b = self.scale * (xs_b @ w_b)[:, :, 0]
         return ys_b

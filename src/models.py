@@ -179,7 +179,7 @@ class TransformerModelStackTogether(nn.Module):
 
         self.n_positions = n_positions
         self.n_dims = n_dims
-        self._read_in = nn.Linear(n_dims * 2, n_embd)
+        self._read_in = nn.Linear(n_dims + 1, n_embd)
         self._backbone = GPT2ModelWithoutPositionEmbedding(configuration)
         self._read_out = nn.Linear(n_embd, 1)
 
@@ -197,7 +197,7 @@ class TransformerModelStackTogether(nn.Module):
         zs = torch.cat((xs_b, ys_b_wide), axis=2)
         return zs
 
-    def forward(self, xs, ys, inds=None):
+    def forward(self, xs, ys = None, inds=None):
         if inds is None:
             inds = torch.arange(ys.shape[1])
         else:
@@ -205,9 +205,8 @@ class TransformerModelStackTogether(nn.Module):
             if max(inds) >= ys.shape[1] or min(inds) < 0:
                 raise ValueError("inds contain indices where xs and ys are not defined")
         
-        zs = self._combine(xs, ys)
-        print(zs.shape)
-        embeds = self._read_in(zs)
+        # zs = self._combine(xs, ys)
+        embeds = self._read_in(xs)
 
 
         output = self._backbone(inputs_embeds=embeds).last_hidden_state

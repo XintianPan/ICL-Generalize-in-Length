@@ -3,7 +3,7 @@ inherit:
     - wandb.yaml
 
 model:
-    n_dims: 15
+    n_dims: 5
     n_positions: 501
     type: stackxy
 
@@ -15,9 +15,10 @@ training:
     save_every_steps: 1000
     keep_every_steps: 100000
     train_steps: 500001
+    resume_id: stackxy_model_2
     curriculum:
         dims:
             start: 5
-            end: 15
+            end: 5
             inc: 1
             interval: 2000

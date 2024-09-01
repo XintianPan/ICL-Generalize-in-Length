@@ -300,15 +300,15 @@ class DatasetBase(Dataset):
 if __name__ == "__main__":
     from data_linear import LinearReg
     # data_method = DataMethod({"seq_len": 100, "dim": 10, "noise_scale": 0.1})
-    data_method = LinearReg({"L": 3, "dx": 5, "dy": 1, "number_of_samples": 1, "noise_std": 0.1})
+    data_method = LinearReg({"L": 40, "dx": 5, "dy": 1, "number_of_samples": 1, "noise_std": 0.1})
     synthetic_data_generator = SyntheticDataGenerator(
-            data_dir=os.path.join(os.path.dirname(os.path.realpath(__file__)), "testing"),
-            train_sample_size=24,
-            val_sample_size=100,
-            test_sample_size=100,
-            num_sample_per_file_train=1,
+            data_dir=os.path.join(os.path.dirname(os.path.realpath(__file__)), "newtesting"),
+            train_sample_size=50000,
+            val_sample_size=1000,
+            test_sample_size=10000,
+            num_sample_per_file_train=500,
             num_sample_per_file_val=20,
-            num_sample_per_file_test=20,
+            num_sample_per_file_test=200,
             data_method=data_method,
             data_method_args_dict={}
         )
@@ -320,7 +320,7 @@ if __name__ == "__main__":
     dataset = DatasetBase(
         index_to_file_dict=index_to_file_dict["train"], 
         data_method=data_method,
-        data_method_args_dict={"L": 3})
+        data_method_args_dict={"L": 40})
 
     # Get the length of the dataset
     print(len(dataset))
