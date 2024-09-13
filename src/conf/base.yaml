@@ -1,10 +1,10 @@
 inherit: 
-    - models/five.yaml
+    - models/three.yaml
     - wandb.yaml
 
 model:
-    n_dims: 5
-    n_positions: 501
+    n_dims: 20
+    n_positions: 2001
     type: stackxy
 
 training:
@@ -14,11 +14,11 @@ training:
     learning_rate: 0.0001
     save_every_steps: 1000
     keep_every_steps: 100000
-    train_steps: 500001
-    resume_id: stackxy_model_2
+    train_steps: 1000001
+    resume_id: stackxy_model_three_20d_dtrain_1
     curriculum:
         dims:
             start: 5
-            end: 5
+            end: 15
             inc: 1
             interval: 2000

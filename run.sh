@@ -1,12 +1,12 @@
 #!/bin/bash
 
 #SBATCH --job-name=in_context_learning
-#SBATCH --output=gpu_ex_135.txt
+#SBATCH --output=gpu_ex_180.txt
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=10
+#SBATCH --cpus-per-task=8
 #SBATCH --gpus=a100:1
 #SBATCH --partition=gpu
-#SBATCH --mem-per-cpu=50000
+#SBATCH --mem-per-cpu=10g
 #SBATCH --time=48:00:00
 
 module load CUDA

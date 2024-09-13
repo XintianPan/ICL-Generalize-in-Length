@@ -7,3 +7,6 @@ src/testing
 *.txt
 *.jpg
 src/newtesting
+src/newtesting*d
+src/testing*d
+src/noisetesting*d

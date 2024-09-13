@@ -38,6 +38,21 @@ def get_model_from_run(run_path, step=-1, only_conf=False):
 
 # Functions for evaluation
 
+def stackingmethod_evaluate(model, xs, ys, device, task):
+    b_size, n_points, _ = xs.shape
+    metrics = torch.zeros(b_size, n_points)
+    ys_b = ys.view(xs.shape[0], xs.shape[1], 1)
+    xs_b = torch.cat([xs, ys_b], dim=2)
+    for i in range(n_points):
+        xs_b[..., i, -1] = 0
+        pred = model(xs_b.to(device), ys.to(device)).detach()
+        xs_b[..., i, -1] = ys[..., i]
+        metrics[:, i] = task.get_metric()(pred.cpu(), ys)[:, i]
+    return metrics
+
+
+
+
 
 def eval_batch(model, task_sampler, xs, xs_p=None):
     task = task_sampler()
@@ -48,16 +63,24 @@ def eval_batch(model, task_sampler, xs, xs_p=None):
 
     if xs_p is None:
         ys = task.evaluate(xs)
-        pred = model(xs.to(device), ys.to(device)).detach()
-        metrics = task.get_metric()(pred.cpu(), ys)
+        if device == "cuda":
+            metrics = stackingmethod_evaluate(model, xs, ys, device, task)
+        else:
+            pred = model(xs.to(device), ys.to(device)).detach()
+            metrics = task.get_metric()(pred.cpu(), ys)
     else:
         b_size, n_points, _ = xs.shape
         metrics = torch.zeros(b_size, n_points)
         for i in range(n_points):
             xs_comb = torch.cat((xs[:, :i, :], xs_p[:, i:, :]), dim=1)
             ys = task.evaluate(xs_comb)
-
-            pred = model(xs_comb.to(device), ys.to(device), inds=[i]).detach()
+            if device == "cuda":
+                ys_b = ys.view(b_size, n_points, 1)
+                xs_b = torch.cat([xs_comb, ys_b], dim=2)
+                xs_b[:, i, -1] = 0
+                pred = model(xs_b.to(device), ys.to(device), inds=[i]).detach()
+            else:
+                pred = model(xs_comb.to(device), ys.to(device), inds=[i]).detach()
             metrics[:, i] = task.get_metric()(pred.cpu(), ys)[:, i]
 
     return metrics
@@ -197,6 +220,7 @@ def eval_model(
 def build_evals(conf):
     n_dims = conf.model.n_dims
     n_points = conf.model.n_positions - 1
+    # n_points = 2000
     batch_size = conf.training.batch_size
     # print(n_points)
 
