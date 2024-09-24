@@ -51,7 +51,7 @@ def extract_qkv_matrices(model):
     W_q = W_q.view(hidden_size, num_heads, head_dim)
     W_k = W_k.view(hidden_size, num_heads, head_dim)
     W_v = W_v.view(hidden_size, num_heads, head_dim)
-    W_e = W_e.view(head_dim, num_heads, n_dim)
+
 
     b_q = b_q.view(num_heads, head_dim)
     b_k = b_k.view(num_heads, head_dim)
@@ -68,7 +68,6 @@ def extract_qkv_matrices(model):
         b_k_head = b_k[head_idx, :]
         b_v_head = b_v[head_idx, :]
 
-        W_e_head = W_e[:, head_idx, :]
 
         qkv_matrices.append({
             'W_q': W_q_head,
@@ -77,7 +76,7 @@ def extract_qkv_matrices(model):
             'b_q': b_q_head,
             'b_k': b_k_head,
             'b_v': b_v_head,
-            'W_e': W_e_head
+            'W_e': W_e
         })
 
     return qkv_matrices
@@ -85,8 +84,8 @@ def extract_qkv_matrices(model):
 def heatmap_draw_qk(qkv_matrices, title):
     Wq = qkv_matrices['W_q']
     Wk = qkv_matrices['W_k']
-    Wq_t = Wq.transpose(0, 1)
-    QK_matrix = torch.matmul(Wq_t, Wk)
+    Wk_t = Wk.transpose(0, 1)
+    QK_matrix = torch.matmul(Wq, Wk_t)
     # dim0, dim1 = QK_matrix.shape
     my_array = QK_matrix.cpu().numpy()
 
@@ -100,10 +99,13 @@ def heatmap_draw_qk_ebmeds(qkv_matrices, title):
     Wq = qkv_matrices['W_q']
     Wk = qkv_matrices['W_k']
     We = qkv_matrices['W_e']
-    Wq_t = Wq.transpose(0, 1)
+    print(Wq.shape)
+    print(Wk.shape)
+    print(We.shape)
+    Wk_t = Wk.transpose(0, 1)
     We_t = We.transpose(0, 1)
-    QK_circuit = torch.matmul(We_t, Wq_t)
-    QK_circuit = torch.matmul(QK_circuit, Wk)
+    QK_circuit = torch.matmul(We_t, Wq)
+    QK_circuit = torch.matmul(QK_circuit, Wk_t)
     QK_circuit = torch.matmul(QK_circuit, We)
     # dim0, dim1 = QK_matrix.shape
     my_array = QK_circuit.cpu().numpy()
@@ -136,8 +138,8 @@ def visualize_from_data(run_path, step=-1):
         else:
             title = f"QK matrix heatmap for head {i - 1}"
         
-        heatmap_draw_qk(qkv_matrices[i], title)
-        heatmap_draw_qk_ebmeds(qkv_matrices[i], title + " mult embeds")
+        # heatmap_draw_qk(qkv_matrices[i], title)
+        heatmap_draw_qk_ebmeds(qkv_matrices[i], title)
 
     wandb.finish()
 
@@ -155,7 +157,7 @@ if __name__ == "__main__":
     #task = "decision_tree"
     #task = "relu_2nn_regression"
 
-    run_id = "stackxy_model_one-four_noise15d_nolyaernormandattnnorm_2"  # if you train more models, replace with the run_id from the table above
+    run_id = "stackxy_model_one-four_noise15d_1"  # if you train more models, replace with the run_id from the table above
 
     run_path = os.path.join(run_dir, task, run_id)
     visualize_from_data(run_path)  # these are normally precomputed at the end of training

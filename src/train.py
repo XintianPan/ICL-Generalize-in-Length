@@ -17,6 +17,7 @@ from dataset_base import DatasetBase
 from torch.utils.data import DataLoader
 from data_linear import LinearReg
 from tasks import squared_error, mean_squared_error
+from visualize_qk import visualize_from_data
 
 import wandb
 
@@ -70,7 +71,7 @@ def train(model, args):
     )
     pbar = tqdm(range(starting_step, args.training.train_steps))
 
-    data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "noisetesting15d/index_to_file_dict.yaml")
+    data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "noisetestingtwice15d/index_to_file_dict.yaml")
 
     fp = open(data_dir)
 
@@ -203,6 +204,7 @@ def main(args):
     wandb.finish()
 
     if not args.test_run:
+        visualize_from_data(args.out_dir)
         _ = get_run_metrics(args.out_dir)  # precompute metrics for eval
 
 
