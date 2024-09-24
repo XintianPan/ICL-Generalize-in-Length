@@ -159,7 +159,7 @@ def log_metrics(metrics, eval_name, normalized=1):
     mean_info = mean_info.tolist()
     mean_data = [[x, y / normalized] for x, y in zip(range(len(mean_info)), mean_info)] 
     mean_table = wandb.Table(data=mean_data, columns=["position", "squared error"])
-    mean_title = eval_name + " - " + "mean"
+    mean_title = eval_name
     mean_plot = wandb.plot.line(mean_table, x='position', y='squared error', title=mean_title)
     wandb.log({
         mean_title: mean_plot,
