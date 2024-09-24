@@ -19,7 +19,7 @@ if __name__ == "__main__":
     #task = "decision_tree"
     #task = "relu_2nn_regression"
 
-    run_id = "stackxy_model_five_noise20d_dtrain_1"  # if you train more models, replace with the run_id from the table above
+    run_id = "stackxy_model_five_square5d_1"  # if you train more models, replace with the run_id from the table above
 
     run_path = os.path.join(run_dir, task, run_id)
     get_run_metrics(run_path)  # these are normally precomputed at the end of training

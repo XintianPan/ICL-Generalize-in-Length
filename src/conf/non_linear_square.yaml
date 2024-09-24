@@ -1,0 +1,16 @@
+inherit: 
+    - base.yaml
+
+training:
+    task: non_linear_square
+    curriculum:
+        points:
+            start: 11
+            end: 40
+            inc: 2
+            interval: 2000
+
+out_dir: ../models/linear_regression
+
+wandb:
+    name: "non_linear_square_five2embeds_stackxy_square5d_1000ex_1"

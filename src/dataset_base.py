@@ -299,16 +299,17 @@ class DatasetBase(Dataset):
 
 if __name__ == "__main__":
     from data_linear import LinearReg
+    from data_nonlinear import NonLinearSquareReg
     # data_method = DataMethod({"seq_len": 100, "dim": 10, "noise_scale": 0.1})
-    data_method = LinearReg({"L": 40, "dx": 20, "dy": 1, "number_of_samples": 1, "noise_std": 0})
+    data_method = LinearReg({"L": 40, "dx": 15, "dy": 1, "number_of_samples": 1, "noise_std": 0.1})
     synthetic_data_generator = SyntheticDataGenerator(
-            data_dir=os.path.join(os.path.dirname(os.path.realpath(__file__)), "testingtwice20d"),
-            train_sample_size=1600200,
-            val_sample_size=1600200,
-            test_sample_size=200,
-            num_sample_per_file_train=200,
-            num_sample_per_file_val=200,
-            num_sample_per_file_test=200,
+            data_dir=os.path.join(os.path.dirname(os.path.realpath(__file__)), "noisetestingtwice15d"),
+            train_sample_size=1600400,
+            val_sample_size=1600400,
+            test_sample_size=20,
+            num_sample_per_file_train=400,
+            num_sample_per_file_val=400,
+            num_sample_per_file_test=20,
             data_method=data_method,
             data_method_args_dict={}
         )

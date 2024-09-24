@@ -10,3 +10,4 @@ src/newtesting
 src/newtesting*d
 src/testing*d
 src/noisetesting*d
+*.sh

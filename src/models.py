@@ -11,8 +11,22 @@ import xgboost as xgb
 
 from base_models import NeuralNetwork, ParallelNetworks
 
-from gpt2_nopos import GPT2ModelWithoutPositionEmbedding
+from modfied_gpt2 import (
+    GPT2ModelWithoutPositionEmbedding,
+    GPT2ModelWithoutPositionEmbeddingAndLayerNorm,
+    GPT2ModelWithoutPositionEmbeddingAndLayerNormAndAttentionNorm
+)
 
+def model_selection(conf):
+    gpt2model = None
+    if conf.layer_norm == "use_norm":
+        gpt2model = GPT2ModelWithoutPositionEmbedding
+    elif conf.layer_norm == "no_out":
+        gpt2model = GPT2ModelWithoutPositionEmbeddingAndLayerNorm
+    elif conf.layer_norm == "no_attn_out":
+        gpt2model = GPT2ModelWithoutPositionEmbeddingAndLayerNormAndAttentionNorm
+
+    return gpt2model        
 
 def build_model(conf):
     if conf.family == "gpt2":
@@ -25,13 +39,14 @@ def build_model(conf):
             n_head=conf.n_head,
             )
         elif conf.type == "stackxy":
-            print("stacking method")
+            gpt2model = model_selection(conf)
             model = TransformerModelStackTogether(
             n_dims=conf.n_dims,
             n_positions=conf.n_positions,
             n_embd=conf.n_embd,
             n_layer=conf.n_layer,
             n_head=conf.n_head,
+            GPT2Model=gpt2model
             )
         else:
             raise NotImplementedError        
@@ -45,8 +60,12 @@ def get_relevant_baselines(task_name):
     task_to_baselines = {
         "linear_regression": [
             (LeastSquaresModel, {}),
+            (NNModel, {"n_neighbors": 1}),
             (NNModel, {"n_neighbors": 3}),
-            (AveragingModel, {}),
+            (NNModel, {"n_neighbors": 5}),
+            (NNModel, {"n_neighbors": 10}),
+            # (AveragingModel, {}),
+            (RidgeModel, {}),
         ],
         "linear_classification": [
             (NNModel, {"n_neighbors": 3}),
@@ -84,6 +103,11 @@ def get_relevant_baselines(task_name):
             (DecisionTreeModel, {"max_depth": 4}),
             (DecisionTreeModel, {"max_depth": None}),
             (XGBoostModel, {}),
+            (AveragingModel, {}),
+        ],
+        "non_linear_square": [
+            (LeastSquaresModel, {}),
+            (NNModel, {"n_neighbors": 3}),
             (AveragingModel, {}),
         ],
     }
@@ -162,7 +186,7 @@ class TransformerModel(nn.Module):
         return prediction[:, ::2, 0][:, inds]  # predict only on xs
 
 class TransformerModelStackTogether(nn.Module):
-    def __init__(self, n_dims, n_positions, n_embd=128, n_layer=12, n_head=4):
+    def __init__(self, n_dims, n_positions, n_embd=128, n_layer=12, n_head=4, GPT2Model=GPT2ModelWithoutPositionEmbedding):
         super(TransformerModelStackTogether, self).__init__()
         configuration = GPT2Config(
             n_positions=n_positions,
@@ -180,7 +204,7 @@ class TransformerModelStackTogether(nn.Module):
         self.n_positions = n_positions
         self.n_dims = n_dims
         self._read_in = nn.Linear(n_dims + 1, n_embd)
-        self._backbone = GPT2ModelWithoutPositionEmbedding(configuration)
+        self._backbone = GPT2Model(configuration)
         self._read_out = nn.Linear(n_embd, 1)
 
     @staticmethod
@@ -283,6 +307,48 @@ class LeastSquaresModel:
             ws, _, _, _ = torch.linalg.lstsq(
                 train_xs, train_ys.unsqueeze(2), driver=self.driver
             )
+
+            pred = test_x @ ws
+            preds.append(pred[:, 0, 0])
+
+        return torch.stack(preds, dim=1)
+
+class RidgeModel:
+    def __init__(self, driver=None):
+        self.driver = driver
+        self.name = f"Ridge_driver={driver}"
+
+    def __call__(self, xs, ys, inds=None, lam=0.01):
+        xs, ys = xs.cpu(), ys.cpu()
+        _, _, n_dims = xs.shape
+        if inds is None:
+            inds = range(ys.shape[1])
+        else:
+            if max(inds) >= ys.shape[1] or min(inds) < 0:
+                raise ValueError("inds contain indices where xs and ys are not defined")
+
+        preds = []
+
+        for i in inds:
+            if i == 0:
+                preds.append(torch.zeros_like(ys[:, 0]))  # predict zero for first point
+                continue
+            train_xs, train_ys = xs[:, :i], ys[:, :i]
+            test_x = xs[:, i : i + 1]
+
+            train_xs_T = train_xs.clone()
+
+            train_xs_T = train_xs_T.permute((0, 2, 1)) # (bsize, n_dims, n_points)
+
+            train_ys_b = train_ys.unsqueeze(2) # (bsize, n_points, 1)
+
+            train_xs_T_Y = train_xs_T @ train_ys_b # (bsize, n_dims, 1)
+
+            ridge_mat = torch.matmul(train_xs_T, train_xs) + lam * torch.eye(n_dims) # (bsize, n_dims, n_dims)
+
+            ws = torch.linalg.solve(
+                ridge_mat, train_xs_T_Y
+            ) 
 
             pred = test_x @ ws
             preds.append(pred[:, 0, 0])

@@ -12,10 +12,21 @@ palette = sns.color_palette("colorblind")
 
 relevant_model_names = {
     "linear_regression": [
-        "Transformer-three",
+        "Transformer-one-four",
+        "Least Squares",
+        # "1-Nearest Neighbors",
+        # "3-Nearest Neighbors",
+        # "5-Nearest Neighbors",
+        # "10-Nearest Neighbors",
+        # "Averaging",
+        # "Ridge",
+    ],
+    "non_linear_square": [
+        "Transformer-five",
         "Least Squares",
         "3-Nearest Neighbors",
         "Averaging",
+        # "Ridge",
     ],
     "sparse_linear_regression": [
         "Transformer",
@@ -42,8 +53,7 @@ relevant_model_names = {
 
 def basic_plot(metrics, models=None, trivial=1.0):
     fig, ax = plt.subplots(1, 1)
-    print(models)
-    print(metrics)
+
 
     if models is not None:
         metrics = {k: metrics[k] for k in models}
@@ -69,7 +79,7 @@ def basic_plot(metrics, models=None, trivial=1.0):
     return fig, ax
 
 
-def collect_results(run_dir, df, valid_row=None, rename_eval=None, rename_model=None):
+def collect_results(run_dir, df, valid_row=None, rename_eval=None, rename_model=None, step=-1):
     all_metrics = {}
     for _, r in df.iterrows():
         if valid_row is not None and not valid_row(r):
@@ -79,7 +89,7 @@ def collect_results(run_dir, df, valid_row=None, rename_eval=None, rename_model=
         _, conf = get_model_from_run(run_path, only_conf=True)
 
         print(r.run_name, r.run_id)
-        metrics = get_run_metrics(run_path, skip_model_load=True)
+        metrics = get_run_metrics(run_path, skip_model_load=True, step=step)
 
         for eval_name, results in sorted(metrics.items()):
             processed_results = {}

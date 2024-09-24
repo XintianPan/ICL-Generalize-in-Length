@@ -1,11 +1,12 @@
 inherit: 
-    - models/three.yaml
+    - models/one-four.yaml
     - wandb.yaml
 
 model:
-    n_dims: 20
+    n_dims: 15
     n_positions: 2001
     type: stackxy
+    layer_norm: no_attn_out
 
 training:
     data: gaussian
@@ -14,8 +15,8 @@ training:
     learning_rate: 0.0001
     save_every_steps: 1000
     keep_every_steps: 100000
-    train_steps: 1000001
-    resume_id: stackxy_model_three_20d_dtrain_1
+    train_steps: 500001
+    resume_id: stackxy_model_one-four_noise15d_nolyaernormandattnnorm_2
     curriculum:
         dims:
             start: 5

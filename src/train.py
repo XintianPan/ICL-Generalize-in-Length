@@ -7,7 +7,7 @@ from tqdm import tqdm
 import torch
 import yaml
 
-from eval import get_run_metrics
+from eval import get_run_metrics, baseline_names
 from tasks import get_task_sampler
 from samplers import get_data_sampler
 from curriculum import Curriculum
@@ -70,7 +70,7 @@ def train(model, args):
     )
     pbar = tqdm(range(starting_step, args.training.train_steps))
 
-    data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "testingtwice20d/index_to_file_dict.yaml")
+    data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "noisetesting15d/index_to_file_dict.yaml")
 
     fp = open(data_dir)
 
@@ -200,12 +200,15 @@ def main(args):
 
     train(model, args)
 
+    wandb.finish()
+
     if not args.test_run:
         _ = get_run_metrics(args.out_dir)  # precompute metrics for eval
 
 
+
 if __name__ == "__main__":
-    wandb.login(key='cc6ec8f1126b0f574d19718f6fc0232c274ac33c')
+    # wandb.login(key='cc6ec8f1126b0f574d19718f6fc0232c274ac33c')
     parser = QuinineArgumentParser(schema=schema)
     args = parser.parse_quinfig()
     assert args.model.family in ["gpt2", "lstm"]

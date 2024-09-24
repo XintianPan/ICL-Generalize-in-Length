@@ -154,8 +154,18 @@ def gen_overlapping_train_test(data_sampler, n_points, b_size):
 
     return xs_train_pre, xs_test_post
 
+def log_metrics(metrics, eval_name, normalized=1):
+    mean_info = metrics.mean(dim=0)
+    mean_info = mean_info.tolist()
+    mean_data = [[x, y / normalized] for x, y in zip(range(len(mean_info)), mean_info)] 
+    mean_table = wandb.Table(data=mean_data, columns=["position", "squared error"])
+    mean_title = eval_name + " - " + "mean"
+    mean_plot = wandb.plot.line(mean_table, x='position', y='squared error', title=mean_title)
+    wandb.log({
+        mean_title: mean_plot,
+    })
 
-def aggregate_metrics(metrics, bootstrap_trials=1000):
+def aggregate_metrics(metrics, bootstrap_trials=1000, eval_name="standard", normalized=1):
     """
     Takes as input a tensor of shape (num_eval, n_points) and returns a dict with
     per-point mean, stddev, and bootstrap limits
@@ -169,11 +179,14 @@ def aggregate_metrics(metrics, bootstrap_trials=1000):
     results["bootstrap_low"] = bootstrap_means[int(0.05 * bootstrap_trials), :]
     results["bootstrap_high"] = bootstrap_means[int(0.95 * bootstrap_trials), :]
 
+    log_metrics(metrics, eval_name)
+
     return {k: v.tolist() for k, v in results.items()}
 
 
 def eval_model(
     model,
+    eval_name,
     task_name,
     data_name,
     n_dims,
@@ -214,7 +227,7 @@ def eval_model(
 
     metrics = torch.cat(all_metrics, dim=0)
 
-    return aggregate_metrics(metrics)
+    return aggregate_metrics(metrics, eval_name=eval_name, normalized=n_dims)
 
 
 def build_evals(conf):
@@ -292,7 +305,7 @@ def build_evals(conf):
     return evaluation_kwargs
 
 
-def compute_evals(all_models, evaluation_kwargs, save_path=None, recompute=False):
+def compute_evals(conf, all_models, evaluation_kwargs, save_path=None, recompute=False):
     try:
         with open(save_path) as fp:
             all_metrics = json.load(fp)
@@ -306,8 +319,13 @@ def compute_evals(all_models, evaluation_kwargs, save_path=None, recompute=False
         for model in all_models:
             if model.name in metrics and not recompute:
                 continue
+            model_task_name = eval_name
+            if "gpt2" in model.name:
+                model_task_name = model_task_name + ": " + conf_to_model_name(conf)
+            else:
+                model_task_name = model_task_name + ": " + baseline_names(model.name)
 
-            metrics[model.name] = eval_model(model, **kwargs)
+            metrics[model.name] = eval_model(model, model_task_name, **kwargs)
         all_metrics[eval_name] = metrics
 
     if save_path is not None:
@@ -332,6 +350,16 @@ def get_run_metrics(
     evaluation_kwargs = build_evals(conf)
     # print(evaluation_kwargs)
     # print("Eval Here")
+    wandb.init(
+            dir=conf.out_dir,
+            project=conf.wandb.project + "-test",
+            entity=conf.wandb.entity,
+            config=conf.__dict__,
+            notes=conf.wandb.notes,
+            name=conf.wandb.name,
+            resume=True,
+    )
+
 
     if not cache:
         save_path = None
@@ -347,9 +375,39 @@ def get_run_metrics(
         if checkpoint_created > cache_created:
             recompute = True
 
-    all_metrics = compute_evals(all_models, evaluation_kwargs, save_path, recompute)
+    all_metrics = compute_evals(conf, all_models, evaluation_kwargs, save_path, recompute)
+
+    # for metric_name in all_metrics.keys():
+    #     current_metric = all_metrics[metric_name]
+    #     for model_name in current_metric.keys():
+    #         model_eval = current_metric[model_name]["mean"]
+    #         if "gpt2" in model_name:
+    #             model_eval_name = conf_to_model_name(conf)
+    #         else:
+    #             model_eval_name = baseline_names(model_name)
+    #         eval_title = metric_name + "-" + model_eval_name
+    #         df = pd.DataFrame({
+    #             'Step': range(len(model_eval)),
+    #             'Value': model_eval
+    #         })
+    #         line_plot = wandb.plot.line(
+    #             df, 
+    #             x="Step", 
+    #             y="Value", 
+    #             title=eval_title,
+    #             xlabel="Step",
+    #             ylabel="Value"
+    #         )
+    #         wandb.log({eval_title: line_plot})
+
+
+    wandb.finish()
     return all_metrics
 
+def diff_between_models(
+    run_path, step=-1
+):
+    pass
 
 
 def conf_to_model_name(conf):
@@ -360,6 +418,10 @@ def conf_to_model_name(conf):
             (5, 8): "Transformer-five",
             (3, 8): "Transformer-three",
             (1, 8): "Transformer-one",
+            (1, 1): "Transformer-one-one",
+            (1, 2): "Transformer-one-two",
+            (1, 3): "Transformer-one-three",
+            (1, 4): "Transformer-one-four",
             (12, 8): "Transformer",
         }[(conf.model.n_layer, conf.model.n_head)]
     else:
@@ -367,6 +429,8 @@ def conf_to_model_name(conf):
 
 
 def baseline_names(name):
+    if "Ridge" in name:
+        return "Ridge"
     if "OLS" in name:
         return "Least Squares"
     if name == "averaging":

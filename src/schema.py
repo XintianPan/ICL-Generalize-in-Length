@@ -20,7 +20,8 @@ model_schema = {
     "n_embd": merge(tinteger, required),
     "n_layer": merge(tinteger, required),
     "n_head": merge(tinteger, required),
-    "type": merge(tstring, allowed(["stackxy", "nostack"]))
+    "type": merge(tstring, allowed(["stackxy", "nostack"])),
+    "layer_norm": merge(tstring, allowed(["use_norm", "no_out", "no_attn_out"]), default("use_norm")),
 }
 
 curriculum_base_schema = {
@@ -41,6 +42,7 @@ TASK_LIST = [
     "linear_classification",
     "relu_2nn_regression",
     "decision_tree",
+    "non_linear_square",
 ]
 
 training_schema = {
