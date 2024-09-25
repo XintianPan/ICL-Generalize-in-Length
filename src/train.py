@@ -210,7 +210,6 @@ def main(args):
 
 
 if __name__ == "__main__":
-    # wandb.login(key='cc6ec8f1126b0f574d19718f6fc0232c274ac33c')
     parser = QuinineArgumentParser(schema=schema)
     args = parser.parse_quinfig()
     assert args.model.family in ["gpt2", "lstm"]

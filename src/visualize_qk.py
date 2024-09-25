@@ -157,7 +157,7 @@ if __name__ == "__main__":
     #task = "decision_tree"
     #task = "relu_2nn_regression"
 
-    run_id = "stackxy_model_one-four_noise15d_1"  # if you train more models, replace with the run_id from the table above
+    run_id = "stackxy_model_one-for_noise15d_2"  # if you train more models, replace with the run_id from the table above
 
     run_path = os.path.join(run_dir, task, run_id)
     visualize_from_data(run_path)  # these are normally precomputed at the end of training
