@@ -179,7 +179,7 @@ def aggregate_metrics(metrics, bootstrap_trials=1000, eval_name="standard", norm
     results["bootstrap_low"] = bootstrap_means[int(0.05 * bootstrap_trials), :]
     results["bootstrap_high"] = bootstrap_means[int(0.95 * bootstrap_trials), :]
 
-    log_metrics(metrics, eval_name)
+    log_metrics(metrics, eval_name, normalized)
 
     return {k: v.tolist() for k, v in results.items()}
 
