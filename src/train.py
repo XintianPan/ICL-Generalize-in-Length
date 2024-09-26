@@ -18,6 +18,7 @@ from torch.utils.data import DataLoader
 from data_linear import LinearReg
 from tasks import squared_error, mean_squared_error
 from visualize_qk import visualize_from_data
+from cpl import CPL
 
 import wandb
 
@@ -46,6 +47,10 @@ def sample_seeds(total_seeds, count):
 
 
 def train(model, args):
+    # Add Slurm checkpoint handler
+
+    cpl = CPL()
+
     optimizer = torch.optim.Adam(model.parameters(), lr=args.training.learning_rate)
     curriculum = Curriculum(args.training.curriculum)
 
@@ -71,18 +76,18 @@ def train(model, args):
     )
     pbar = tqdm(range(starting_step, args.training.train_steps))
 
-    data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "noisetestingtwice15d/index_to_file_dict.yaml")
+    data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "noisetestingtwicelen15d/index_to_file_dict.yaml")
 
     fp = open(data_dir)
 
     index_to_file_dict = yaml.load(fp)
 
-    data_method = LinearReg({"L": 40, "dx": 20, "dy": 1, "number_of_samples": 1, "noise_std": 0})
+    data_method = LinearReg({"L": 80, "dx": 15, "dy": 1, "number_of_samples": 1, "noise_std": 0})
 
     training_dataset = DatasetBase(
         index_to_file_dict=index_to_file_dict["train"], 
         data_method=data_method,
-        data_method_args_dict={"L": 40}
+        data_method_args_dict={"L": 80}
     )
 
     validating_dataset = DatasetBase(
@@ -168,6 +173,16 @@ def train(model, args):
                 "train_step": i,
             }
             torch.save(training_state, state_path)
+
+        if cpl.check():
+            print()
+            print('='*100)
+            print('detected preemption flag inside training loop')
+            print('exiting gracefully (saving model checkpoint, etc.) ...')
+            torch.save(model.state_dict(), os.path.join(args.out_dir, f"model_{i}.pt"))
+            wandb.finish()
+            print('exiting now')
+            print('='*100)
 
         if (
             args.training.keep_every_steps > 0

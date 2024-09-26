@@ -7,8 +7,11 @@ from eval import get_run_metrics, read_run_dir, get_model_from_run
 import seaborn as sns
 
 def extract_qkv_matrices(model):
-    # Access the only transformer block
+    # Extract the embedding matrix
+    
     W_e = model._read_in.weight.detach().cpu()
+    
+    # Access the only transformer block
     model = model._backbone
     layer = model.h[0]
     attention = layer.attn

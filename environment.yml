@@ -5,7 +5,7 @@ channels:
 dependencies:
   - pip=21.2.4
   - python=3.8.12
-  - pytorch=1.11.0
+  - pytorch=2.4.1
   - pip:
     - jupyter==1.0.0
     - matplotlib==3.5.2
