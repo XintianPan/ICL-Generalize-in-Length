@@ -1,5 +1,5 @@
 inherit: 
-    - models/one-four.yaml
+    - models/one.yaml
     - wandb.yaml
 
 model:
@@ -16,10 +16,10 @@ training:
     save_every_steps: 1000
     keep_every_steps: 100000
     train_steps: 500001
-    resume_id: stackxy_model_one-four_noise15d_dlen_nolyaernormandattnnorm_1
+    resume_id: stackxy_model_one_noise15d_qlen_nolyaernormandattnnorm_2
     curriculum:
         dims:
-            start: 5
+            start: 15
             end: 15
             inc: 1
             interval: 2000

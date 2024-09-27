@@ -76,24 +76,26 @@ def train(model, args):
     )
     pbar = tqdm(range(starting_step, args.training.train_steps))
 
-    data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "noisetestingtwicelen15d/index_to_file_dict.yaml")
+    data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "noisetestingtriplelen15d/index_to_file_dict.yaml")
 
     fp = open(data_dir)
 
     index_to_file_dict = yaml.load(fp)
 
-    data_method = LinearReg({"L": 80, "dx": 15, "dy": 1, "number_of_samples": 1, "noise_std": 0})
+    data_method = LinearReg({"L": 160, "dx": 15, "dy": 1, "number_of_samples": 1, "noise_std": 0})
 
     training_dataset = DatasetBase(
         index_to_file_dict=index_to_file_dict["train"], 
         data_method=data_method,
-        data_method_args_dict={"L": 80}
+        data_method_args_dict={"L": 160},
+        load_data_into_memory=True
     )
 
     validating_dataset = DatasetBase(
         index_to_file_dict=index_to_file_dict["val"], 
         data_method=data_method,
-        data_method_args_dict={"L": 40}
+        data_method_args_dict={"L": 160},
+        load_data_into_memory=True
     )
 
     train_dataloader = DataLoader(training_dataset, batch_size=64, shuffle=True)
