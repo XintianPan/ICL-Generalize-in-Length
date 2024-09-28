@@ -76,7 +76,7 @@ def train(model, args):
     )
     pbar = tqdm(range(starting_step, args.training.train_steps))
 
-    data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "noisetestingskewedtwice5d/index_to_file_dict.yaml")
+    data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "noisetesting5d/index_to_file_dict.yaml")
 
     fp = open(data_dir)
 

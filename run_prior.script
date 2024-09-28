@@ -27,4 +27,18 @@ fi
 
 wandb login "$API_KEY"
 
+# This is used for training, after training, it will automatically visualize QK circuit and evaluate model
+# Training model needs to initialize dataset first, commands for generate dataset is provided as below
+
 python src/train.py --config src/conf/linear_regression.yaml
+
+
+# If only want to evaluate model, use below command
+# python src/get_eval.py --dir /home/xc425/project/models --runid stackxy_model_one-four_noise15d_qlen_nolyaernormandattnnorm_2
+
+# If want to generate training dataset, please use
+# python src/dataset_base.py
+
+# If want to visualize QK circuit, use this
+# python src/visualize_qk.py --dir /home/xc425/project/models --runid stackxy_model_one-four_noise15d_qlen_nolyaernormandattnnorm_2
+

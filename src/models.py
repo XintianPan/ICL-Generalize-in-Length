@@ -7,8 +7,6 @@ from sklearn.linear_model import LogisticRegression, Lasso
 import warnings
 from sklearn import tree
 import random
-import xgboost as xgb
-
 from base_models import NeuralNetwork, ParallelNetworks
 
 from modfied_gpt2 import (
@@ -72,49 +70,6 @@ def get_relevant_baselines(task_name):
             # (NNModel, {"n_neighbors": 10}),
             # (AveragingModel, {}),
             (RidgeModel, {}),
-        ],
-        "linear_classification": [
-            (NNModel, {"n_neighbors": 3}),
-            (AveragingModel, {}),
-        ],
-        "sparse_linear_regression": [
-            (LeastSquaresModel, {}),
-            (NNModel, {"n_neighbors": 3}),
-            (AveragingModel, {}),
-        ]
-        + [(LassoModel, {"alpha": alpha}) for alpha in [1, 0.1, 0.01, 0.001, 0.0001]],
-        "relu_2nn_regression": [
-            (LeastSquaresModel, {}),
-            (NNModel, {"n_neighbors": 3}),
-            (AveragingModel, {}),
-            (
-                GDModel,
-                {
-                    "model_class": NeuralNetwork,
-                    "model_class_args": {
-                        "in_size": 20,
-                        "hidden_size": 100,
-                        "out_size": 1,
-                    },
-                    "opt_alg": "adam",
-                    "batch_size": 100,
-                    "lr": 5e-3,
-                    "num_steps": 100,
-                },
-            ),
-        ],
-        "decision_tree": [
-            (LeastSquaresModel, {}),
-            (NNModel, {"n_neighbors": 3}),
-            (DecisionTreeModel, {"max_depth": 4}),
-            (DecisionTreeModel, {"max_depth": None}),
-            (XGBoostModel, {}),
-            (AveragingModel, {}),
-        ],
-        "non_linear_square": [
-            (LeastSquaresModel, {}),
-            (NNModel, {"n_neighbors": 3}),
-            (AveragingModel, {}),
         ],
     }
 
@@ -562,83 +517,6 @@ class GDModel:
 
                 assert pred.shape[1] == 1 and pred.shape[2] == 1
                 pred = pred[:, 0, 0]
-
-            preds.append(pred)
-
-        return torch.stack(preds, dim=1)
-
-
-class DecisionTreeModel:
-    def __init__(self, max_depth=None):
-        self.max_depth = max_depth
-        self.name = f"decision_tree_max_depth={max_depth}"
-
-    # inds is a list containing indices where we want the prediction.
-    # prediction made at all indices by default.
-    def __call__(self, xs, ys, inds=None):
-        xs, ys = xs.cpu(), ys.cpu()
-
-        if inds is None:
-            inds = range(ys.shape[1])
-        else:
-            if max(inds) >= ys.shape[1] or min(inds) < 0:
-                raise ValueError("inds contain indices where xs and ys are not defined")
-
-        preds = []
-
-        # i: loop over num_points
-        # j: loop over bsize
-        for i in inds:
-            pred = torch.zeros_like(ys[:, 0])
-
-            if i > 0:
-                pred = torch.zeros_like(ys[:, 0])
-                for j in range(ys.shape[0]):
-                    train_xs, train_ys = xs[j, :i], ys[j, :i]
-
-                    clf = tree.DecisionTreeRegressor(max_depth=self.max_depth)
-                    clf = clf.fit(train_xs, train_ys)
-                    test_x = xs[j, i : i + 1]
-                    y_pred = clf.predict(test_x)
-                    pred[j] = y_pred[0]
-
-            preds.append(pred)
-
-        return torch.stack(preds, dim=1)
-
-
-class XGBoostModel:
-    def __init__(self):
-        self.name = "xgboost"
-
-    # inds is a list containing indices where we want the prediction.
-    # prediction made at all indices by default.
-    def __call__(self, xs, ys, inds=None):
-        xs, ys = xs.cpu(), ys.cpu()
-
-        if inds is None:
-            inds = range(ys.shape[1])
-        else:
-            if max(inds) >= ys.shape[1] or min(inds) < 0:
-                raise ValueError("inds contain indices where xs and ys are not defined")
-
-        preds = []
-
-        # i: loop over num_points
-        # j: loop over bsize
-        for i in tqdm(inds):
-            pred = torch.zeros_like(ys[:, 0])
-            if i > 0:
-                pred = torch.zeros_like(ys[:, 0])
-                for j in range(ys.shape[0]):
-                    train_xs, train_ys = xs[j, :i], ys[j, :i]
-
-                    clf = xgb.XGBRegressor()
-
-                    clf = clf.fit(train_xs, train_ys)
-                    test_x = xs[j, i : i + 1]
-                    y_pred = clf.predict(test_x)
-                    pred[j] = y_pred[0].item()
 
             preds.append(pred)
 

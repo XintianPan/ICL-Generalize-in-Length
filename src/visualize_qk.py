@@ -6,6 +6,8 @@ import torch
 from eval import get_run_metrics, read_run_dir, get_model_from_run
 import seaborn as sns
 
+from args_parser import get_model_parser
+
 def extract_qkv_matrices(model):
     # Extract the embedding matrix
     
@@ -150,7 +152,11 @@ def visualize_from_data(run_path, step=-1):
 
 if __name__ == "__main__":
 
-    run_dir = "/home/xc425/project/models"
+    parser = get_model_parser()
+
+    args = parser.parse_args()
+
+    run_dir = args.dir
 
     df = read_run_dir(run_dir)
 
@@ -159,7 +165,7 @@ if __name__ == "__main__":
     #task = "decision_tree"
     #task = "relu_2nn_regression"
 
-    run_id = "stackxy_model_one-for_noise15d_2"  # if you train more models, replace with the run_id from the table above
+    run_id = args.runid # if you train more models, replace with the run_id from the table above
 
     run_path = os.path.join(run_dir, task, run_id)
     visualize_from_data(run_path)  # these are normally precomputed at the end of training

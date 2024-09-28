@@ -21,33 +21,6 @@ relevant_model_names = {
         # "Averaging",
         # "Ridge",
     ],
-    "non_linear_square": [
-        "Transformer-five",
-        "Least Squares",
-        "3-Nearest Neighbors",
-        "Averaging",
-        # "Ridge",
-    ],
-    "sparse_linear_regression": [
-        "Transformer",
-        "Least Squares",
-        "3-Nearest Neighbors",
-        "Averaging",
-        "Lasso (alpha=0.01)",
-    ],
-    "decision_tree": [
-        "Transformer",
-        "3-Nearest Neighbors",
-        "2-layer NN, GD",
-        "Greedy Tree Learning",
-        "XGBoost",
-    ],
-    "relu_2nn_regression": [
-        "Transformer",
-        "Least Squares",
-        "3-Nearest Neighbors",
-        "2-layer NN, GD",
-    ],
 }
 
 
