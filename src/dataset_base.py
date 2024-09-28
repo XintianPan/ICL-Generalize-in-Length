@@ -300,10 +300,10 @@ class DatasetBase(Dataset):
 
 
 if __name__ == "__main__":
-    from data_linear import LinearReg, LinearSkewedReg
+    from data_linear import LinearReg
     from data_nonlinear import NonLinearSquareReg
     # data_method = DataMethod({"seq_len": 100, "dim": 10, "noise_scale": 0.1})
-    data_method = LinearSkewedReg({"L": 40, "dx": 5, "dy": 1, "number_of_samples": 1, "noise_std": 0.1})
+    data_method = LinearReg({"L": 40, "dx": 5, "dy": 1, "number_of_samples": 1, "noise_std": 0.1})
     synthetic_data_generator = SyntheticDataGenerator(
             data_dir=os.path.join(os.path.dirname(os.path.realpath(__file__)), "noisetestingskewedtwice5d"),
             train_sample_size=1600400,
