@@ -1,5 +1,6 @@
 from typing import Any, Dict, Optional
 from dataset_base import DataMethod
+from samplers import sample_transformation
 import torch
 import math
 
@@ -80,3 +81,44 @@ class LinearReg(DataMethod):
             x[..., zero_index, -1] = 0
 
         return x, y
+
+class LinearSkewedReg(LinearReg):
+    def __init__(self, dict: Dict = None):
+        super().__init__(dict)
+
+    def __generatedata__(self, **kwargs) -> Any:
+        """
+        Generate linear regression data.
+
+        Args:
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Any: The generated data.
+        """
+
+        # generate x and x_q
+        x = torch.randn(self.number_of_samples, self.L, self.dx)    # (n, L, dx)
+        # x_q = torch.randn(self.number_of_samples, 1, self.dx)    # (n, 1, dx)
+
+        # generate skewed convariance
+        eigenvals = 1 / (torch.arange(self.dx) + 1)
+
+        scale = sample_transformation(eigenvals, normalize=True)
+        x = x @ scale
+
+        # generate beta
+        beta = torch.randn(self.number_of_samples, self.dx, self.dy)    # (n, dx, dy)
+        beta = torch.einsum('nxy,xy->nxy', beta, self.G)    # (n, dx, dy)
+        
+        # generate y
+        y = torch.einsum('nlx,nxy->nly', x, beta)   # (n, L, dy)
+        y += (math.sqrt(self.dx) * self.noise_std 
+              * torch.randn(self.number_of_samples, self.L, self.dy))
+        # y_q = torch.einsum('nlx,nxy->nly', x_q, beta)  # (n, 1, dy)
+
+        # generate z by concatenating x and y
+        z = torch.cat([x, y], dim = 2)
+        # z_q = torch.cat([x_q, torch.zeros_like(y_q)], dim = 2)
+        return z.squeeze(0)
+

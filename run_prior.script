@@ -1,0 +1,29 @@
+#!/bin/bash
+#SBATCH -p gpu -q qos_zhuoran_yang
+#SBATCH --gres=gpu:h100:1
+
+
+#SBATCH --job-name=in_context_learning
+#SBATCH --output=gpu_ex_219.txt
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=8
+#SBATCH --mem-per-cpu=10g
+#SBATCH --time=48:00:00
+
+module load CUDA
+module load cuDNN
+# using your anaconda environment
+module load miniconda
+source activate in-context-learning
+
+API_KEY=$(awk '/machine api.wandb.ai/{f=1} f==1 && /password/{print $2; exit}' ~/.netrc)
+
+# Check if the API_KEY variable is not empty
+if [ -z "$API_KEY" ]; then
+  echo "Error: Could not extract API key from ~/.netrc"
+  exit 1
+fi
+
+wandb login "$API_KEY"
+
+python src/train.py --config src/conf/linear_regression.yaml

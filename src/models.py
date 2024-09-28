@@ -18,12 +18,16 @@ from modfied_gpt2 import (
 )
 
 def model_selection(conf):
+    # Specify whether to apply layer norm or not
     gpt2model = None
     if conf.layer_norm == "use_norm":
+        # Use all layer norm layers
         gpt2model = GPT2ModelWithoutPositionEmbedding
     elif conf.layer_norm == "no_out":
+        # Only use layer norm in attention block, do not apply layer norm to output
         gpt2model = GPT2ModelWithoutPositionEmbeddingAndLayerNorm
     elif conf.layer_norm == "no_attn_out":
+        # Not use any layer norm
         gpt2model = GPT2ModelWithoutPositionEmbeddingAndLayerNormAndAttentionNorm
 
     return gpt2model        
@@ -31,6 +35,7 @@ def model_selection(conf):
 def build_model(conf):
     if conf.family == "gpt2":
         if conf.type == "nostack":
+            # This uses Garg's default settings
             model = TransformerModel(
             n_dims=conf.n_dims,
             n_positions=conf.n_positions,
@@ -39,6 +44,7 @@ def build_model(conf):
             n_head=conf.n_head,
             )
         elif conf.type == "stackxy":
+            # This uses our modified model, x, y are stacked together
             gpt2model = model_selection(conf)
             model = TransformerModelStackTogether(
             n_dims=conf.n_dims,
@@ -60,10 +66,10 @@ def get_relevant_baselines(task_name):
     task_to_baselines = {
         "linear_regression": [
             (LeastSquaresModel, {}),
-            (NNModel, {"n_neighbors": 1}),
-            (NNModel, {"n_neighbors": 3}),
-            (NNModel, {"n_neighbors": 5}),
-            (NNModel, {"n_neighbors": 10}),
+            # (NNModel, {"n_neighbors": 1}),
+            # (NNModel, {"n_neighbors": 3}),
+            # (NNModel, {"n_neighbors": 5}),
+            # (NNModel, {"n_neighbors": 10}),
             # (AveragingModel, {}),
             (RidgeModel, {}),
         ],
@@ -117,6 +123,9 @@ def get_relevant_baselines(task_name):
 
 
 class TransformerModel(nn.Module):
+    # In this model, the input of model is in the form of
+    # {x0, y0, ..., xn, yn, xq, yq}
+    # And model only predicts y based on xi token's position
     def __init__(self, n_dims, n_positions, n_embd=128, n_layer=12, n_head=4):
         super(TransformerModel, self).__init__()
         configuration = GPT2Config(
@@ -186,6 +195,12 @@ class TransformerModel(nn.Module):
         return prediction[:, ::2, 0][:, inds]  # predict only on xs
 
 class TransformerModelStackTogether(nn.Module):
+    # In this setting, the input is in the form of 
+    # {(x0, y0), ..., (xn, yn), (xq, 0)}
+    # Different from model above, we stack (xi, yi) as a single token, not two different tokens
+    # We predict y's value at its current position
+    # Since x, y are stacked together, when predicting yq, we must set it as 0 in token
+    # Otherwise model will learn how to copy y instead of learning linear regression
     def __init__(self, n_dims, n_positions, n_embd=128, n_layer=12, n_head=4, GPT2Model=GPT2ModelWithoutPositionEmbedding):
         super(TransformerModelStackTogether, self).__init__()
         configuration = GPT2Config(

@@ -1,3 +1,5 @@
+# This part is borrowed from Transformers 4.17.0 source code
+
 import torch
 from torch import nn
 from typing import Optional, Tuple, Union, Set, List

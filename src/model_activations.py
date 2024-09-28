@@ -1,3 +1,5 @@
+# This part is borrowed from Transformers 4.17.0 source code
+
 import math
 
 import torch

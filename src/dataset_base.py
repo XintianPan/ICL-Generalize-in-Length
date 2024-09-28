@@ -240,6 +240,7 @@ class DatasetBase(Dataset):
         if self.load_data_into_memory:
             self.data = {}
             for file_idx in self.index_to_file_dict.keys():
+                # file_idx may be str type, check type first
                 if isinstance(file_idx, int):
                     self.data[file_idx] = torch.load(
                         os.path.join(self.data_dir, self.index_to_file_dict[file_idx]))
@@ -299,17 +300,17 @@ class DatasetBase(Dataset):
 
 
 if __name__ == "__main__":
-    from data_linear import LinearReg
+    from data_linear import LinearReg, LinearSkewedReg
     from data_nonlinear import NonLinearSquareReg
     # data_method = DataMethod({"seq_len": 100, "dim": 10, "noise_scale": 0.1})
-    data_method = LinearReg({"L": 160, "dx": 5, "dy": 1, "number_of_samples": 1, "noise_std": 0.1})
+    data_method = LinearSkewedReg({"L": 40, "dx": 5, "dy": 1, "number_of_samples": 1, "noise_std": 0.1})
     synthetic_data_generator = SyntheticDataGenerator(
-            data_dir=os.path.join(os.path.dirname(os.path.realpath(__file__)), "noisetestingquadlen5d"),
-            train_sample_size=200050,
-            val_sample_size=200050,
+            data_dir=os.path.join(os.path.dirname(os.path.realpath(__file__)), "noisetestingskewedtwice5d"),
+            train_sample_size=1600400,
+            val_sample_size=1600400,
             test_sample_size=20,
-            num_sample_per_file_train=200,
-            num_sample_per_file_val=200,
+            num_sample_per_file_train=800,
+            num_sample_per_file_val=800,
             num_sample_per_file_test=20,
             data_method=data_method,
             data_method_args_dict={}

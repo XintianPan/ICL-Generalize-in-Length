@@ -9,7 +9,7 @@ import seaborn as sns
 def extract_qkv_matrices(model):
     # Extract the embedding matrix
     
-    W_e = model._read_in.weight.detach().cpu()
+    W_e = model._read_in.weight.detach().cpu() # shape (hidden_size, input_dim) input_dim = n_dims + 1
     
     # Access the only transformer block
     model = model._backbone
@@ -89,7 +89,6 @@ def heatmap_draw_qk(qkv_matrices, title):
     Wk = qkv_matrices['W_k']
     Wk_t = Wk.transpose(0, 1)
     QK_matrix = torch.matmul(Wq, Wk_t)
-    # dim0, dim1 = QK_matrix.shape
     my_array = QK_matrix.cpu().numpy()
 
     plt.figure(figsize=(10, 8))
@@ -99,18 +98,18 @@ def heatmap_draw_qk(qkv_matrices, title):
     plt.close()
 
 def heatmap_draw_qk_ebmeds(qkv_matrices, title):
+    # We want to visualize QK ciruit
+    # Then output matrix is W_e^T * W_q * W_k^T * W_e
     Wq = qkv_matrices['W_q']
     Wk = qkv_matrices['W_k']
     We = qkv_matrices['W_e']
-    print(Wq.shape)
-    print(Wk.shape)
-    print(We.shape)
+
     Wk_t = Wk.transpose(0, 1)
     We_t = We.transpose(0, 1)
     QK_circuit = torch.matmul(We_t, Wq)
     QK_circuit = torch.matmul(QK_circuit, Wk_t)
     QK_circuit = torch.matmul(QK_circuit, We)
-    # dim0, dim1 = QK_matrix.shape
+
     my_array = QK_circuit.cpu().numpy()
 
     plt.figure(figsize=(10, 8))

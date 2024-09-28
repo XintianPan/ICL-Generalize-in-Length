@@ -1,9 +1,9 @@
 inherit: 
-    - models/one.yaml
+    - models/one-four.yaml
     - wandb.yaml
 
 model:
-    n_dims: 15
+    n_dims: 5
     n_positions: 2001
     type: stackxy
     layer_norm: no_attn_out
@@ -16,7 +16,7 @@ training:
     save_every_steps: 1000
     keep_every_steps: 100000
     train_steps: 500001
-    resume_id: stackxy_model_one_noise15d_qlen_nolyaernormandattnnorm_2
+    resume_id: stackxy_model_one-four_noise5d_nolyaernormandattnnorm_5
     curriculum:
         dims:
             start: 15
