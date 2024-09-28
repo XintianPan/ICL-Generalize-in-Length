@@ -1,5 +1,6 @@
 #!/bin/bash
-#SBATCH -p gpu -q qos_zhuoran_yang
+#SBATCH -p gpu
+#SBATCH --qos=qos_zhuoran_yang 
 #SBATCH --gres=gpu:h100:1
 
 
