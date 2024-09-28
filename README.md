@@ -12,23 +12,23 @@ And Hugging Face Transformers Lib
 
 The default input of model in Garg's setting is in the form of
 
-$$\{x_0,y_0,\dots,x_n,y_n\}$$
+$$\\{x_0,y_0,\dots,x_n,y_n\\}$$
 
 where each x and y are separate tokens
 
-$$TF(\{x_0,y_0,\dots,x_n,y_n\}) = \{\hat{y}_0,\epsilon,\dots,\hat{y}_n,\epsilon\}$$
+$$TF(\\{x_0,y_0,\dots,x_n,y_n\\}) = \\{\hat{y}_0,\epsilon,\dots,\hat{y}_n,\epsilon\\}$$
 
 Transformer model will predict the value of y on its corresponding x token
 
 In our setting, we stack each x and y together for GPT2 Model. Therefore the input becomes
 
-$$\{(x_0,y_0),\dots,(x_n,y_n)\}$$
+$$\\{(x_0,y_0),\dots,(x_n,y_n)\\}$$
 
 where each corresponding x and y are stacked together as one token
 
 When predicting the value of y at a specific position, we need to set it as 0, that is to say
 
-$$TF(\{(x_0,y_0),\dots,(x_q,0),\dots,(x_n,y_n)\}) = \{\epsilon,\dots,\hat{y}_q,\dots,\epsilon\}$$
+$$TF(\\{(x_0,y_0),\dots,(x_q,0),\dots,(x_n,y_n)\\}) = \\{\epsilon,\dots,\hat{y}_q,\dots,\epsilon\\}$$
 
 Note that the GPT2 Model we use is autoregressive, hence the succeeding tokens of the query token does not affect query's output
 
@@ -160,4 +160,3 @@ You can start by cloning our repository and following the steps below.
 # Maintainers
 
 * Xintian Pan
-
