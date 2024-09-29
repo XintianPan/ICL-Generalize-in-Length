@@ -120,11 +120,11 @@ def heatmap_draw_qk_ebmeds(qkv_matrices, title):
     wandb.log({title: wandb.Image(plt)})
     plt.close()
 
-def visualize_from_data(run_path, step=-1):
+def visualize_qk_from_data(run_path, step=-1):
     model, conf = get_model_from_run(run_path, step)
     wandb.init(
             dir=conf.out_dir,
-            project=conf.wandb.project + "-test",
+            project=conf.wandb.project + "-vis-QK",
             entity=conf.wandb.entity,
             config=conf.__dict__,
             notes=conf.wandb.notes,
@@ -168,4 +168,4 @@ if __name__ == "__main__":
     run_id = args.runid # if you train more models, replace with the run_id from the table above
 
     run_path = os.path.join(run_dir, task, run_id)
-    visualize_from_data(run_path)  # these are normally precomputed at the end of training
+    visualize_qk_from_data(run_path)  # these are normally precomputed at the end of training
