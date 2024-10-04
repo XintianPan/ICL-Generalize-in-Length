@@ -12,6 +12,13 @@ from quinine import (
 )
 from funcy import merge
 
+LAYER_NORM_LIST = [
+    "use_norm",
+    "no_out",
+    "no_attn_out",
+]
+
+
 
 model_schema = {
     "family": merge(tstring, allowed(["gpt2", "lstm"])),
@@ -21,7 +28,7 @@ model_schema = {
     "n_layer": merge(tinteger, required),
     "n_head": merge(tinteger, required),
     "type": merge(tstring, allowed(["stackxy", "nostack"])),
-    "layer_norm": merge(tstring, allowed(["use_norm", "no_out", "no_attn_out"]), default("use_norm")),
+    "layer_norm": merge(tstring, allowed(LAYER_NORM_LIST), default("use_norm")),
 }
 
 curriculum_base_schema = {

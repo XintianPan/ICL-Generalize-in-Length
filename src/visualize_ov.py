@@ -8,82 +8,83 @@ import seaborn as sns
 
 from args_parser import get_model_parser
 
-def extract_ov_circuits(model):
-    # Step 1: Extract W_E
-    W_E = model._read_in.weight  # Shape: [n_embd, n_input_dim]
-    b_E = model._read_in.bias    # Shape: [n_embd]
-
-    # Transpose W_E
-    W_E_T = W_E.T  # Shape: [n_input_dim, n_embd]
-
-    # Step 2: Access the transformer block and attention module
-    transformer_block = model._backbone.h[0]
-    attn = transformer_block.attn
-
-    # Step 3: Extract W_V
-    c_attn_weight = attn.c_attn.weight  # Shape: [3 * n_embd, n_embd]
-    c_attn_bias = attn.c_attn.bias      # Shape: [3 * n_embd]
-
-    n_embd = model._backbone.config.n_embd
-    W_V = c_attn_weight[:, 2 * n_embd:].T  # Shape: [n_embd, n_embd]
-    b_V = c_attn_bias[2 * n_embd :]         # Shape: [n_embd]
-
-    # Step 4: Extract W_O
-    W_O = attn.c_proj.weight.T  # Shape: [n_embd, n_embd]
-    b_O = attn.c_proj.bias      # Shape: [n_embd]
-
-    # Step 5: Extract W_R
-    W_R = model._read_out.weight.T  # Shape: [n_embd, 1]
-    b_R = model._read_out.bias      # Shape: [1]
-
-    # Step 6: Store total matrix
-    ov_circuits = []
-    ov_circuits.append(
-        {
-
-            'W_E_T': W_E_T,
-            'W_O': W_O.clone(),
-            'W_V': W_V.clone(),
-            'W_R': W_R,
-        }
-    )
-
-    # Step 7: Define head dimensions
-    n_head = model._backbone.config.n_head
-    head_dim = n_embd // n_head
-
-    # Step 8: Reshape W_V and W_O to separate heads
-    W_V_heads = W_V.view(n_embd, n_head, head_dim)  # Shape: [n_embd, n_head, head_dim]
-    W_O_heads = W_O.view(n_head, head_dim, n_embd)
+def extract_ov_matrices(model):
+    # Extract the embedding matrix
     
-    # Step 9: Store Each Head's OV circuit
-    for head in range(n_head):
-        W_V_head = W_V_heads[:, head, :]  # [n_embd, head_dim]
-        W_O_head = W_O_heads[head, :, :]  # [n_embd, head_dim]
-        ov_circuits.append(
-            {
+    W_e = model._read_in.weight.detach().cpu() # shape (hidden_size, input_dim) input_dim = n_dims + 1
+    
+    
+    W_u = model._read_out.weight.detach().cpu()
 
-                'W_E_T': W_E_T,
-                'W_O': W_O_head,
-                'W_V': W_V_head,
-                'W_R': W_R,
-            }
-        )
+    # Access the only transformer block
+    model = model._backbone
+    layer = model.h[0]
+    attention = layer.attn
+
+    # Get weights and biases
+    c_attn_weight = attention.c_attn.weight.detach().cpu()
+    c_attn_bias = attention.c_attn.bias.detach().cpu()
+
+    hidden_size = model.config.hidden_size
+    num_heads = model.config.num_attention_heads
+    head_dim = hidden_size // num_heads
+
+    
+
+    # Split weights and biases
+    W_q = c_attn_weight[:, :hidden_size]
+    W_k = c_attn_weight[:, hidden_size:2*hidden_size]
+    W_v = c_attn_weight[:, 2*hidden_size:]
+
+    b_q = c_attn_bias[:hidden_size]
+    b_k = c_attn_bias[hidden_size:2*hidden_size]
+    b_v = c_attn_bias[2*hidden_size:]
+
+    W_o = attention.c_proj.weight.detach().cpu() 
+
+    ov_matrices ={
+            'W_q': W_q.clone(),
+            'W_k': W_k.clone(),
+            'W_v': W_v.clone(),
+            'b_q': b_q.clone(),
+            'b_k': b_k.clone(),
+            'b_v': b_v.clone(),
+            'W_e': W_e.clone(),
+            'W_o': W_o.clone(),
+            'W_u': W_u,
+    }
+    
 
 
-    return ov_circuits
+    return ov_matrices
 
-def heatmap_draw_ov(ov_circuits, title):
-    # We want to visualize OV ciruit
-    # Then output circuit is W_E_T @ W_V @ W_O @ W_R
-    W_E_T = ov_circuits['W_E_T']
-    W_V = ov_circuits['W_V']
-    W_O = ov_circuits['W_O']
-    W_R = ov_circuits['W_R']
+def heatmap_draw_ov(ov_matrices, title):
+    W_v = ov_matrices['W_v']
+    W_o = ov_matrices['W_o']
+    OV_matrix = W_v @ W_o
+    my_array = OV_matrix.cpu().numpy()
 
-    OV_circuit = W_E_T @ W_V @ W_O @ W_R
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(my_array, cmap='viridis')
+    plt.title(title)
+    wandb.log({title: wandb.Image(plt)})
+    plt.close()
 
-    my_array = OV_circuit.detach().cpu().numpy()
+def heatmap_draw_ov_ebmeds(ov_matrices, title):
+    # We want to visualize QK ciruit
+    # Then output matrix is W_e^T * W_v * W_o * W_u^T
+    W_e = ov_matrices['W_e']
+    W_v = ov_matrices['W_v']
+    W_o = ov_matrices['W_o']
+    W_u = ov_matrices['W_u']
+
+    W_e_T = W_e.transpose(0, 1)
+    W_u_T = W_u.transpose(0, 1)
+
+
+    ov_circuit = W_e_T @ W_v @ W_o @ W_u_T
+
+    my_array = ov_circuit.cpu().numpy()
 
     plt.figure(figsize=(10, 8))
     sns.heatmap(my_array, cmap='viridis')
@@ -104,17 +105,16 @@ def visualize_ov_from_data(run_path, step=-1):
     )
     model = model.cuda().eval()
 
-    ov_circuits = extract_ov_circuits(model)
-    for i in range(conf.model.n_head + 1):
-        title = None
-        if i == 0:
-            title = "OV circuit heatmap"
-        else:
-            title = f"OV circuit heatmap for head {i - 1}"
-        
-        heatmap_draw_ov(ov_circuits[i], title)
+    ov_matrices = extract_ov_matrices(model)
+    title = "OV circuit"
+    heatmap_draw_ov_ebmeds(ov_matrices, title)
+    title = "OV matrix"
+    heatmap_draw_ov(ov_matrices, title)
 
     wandb.finish()
+
+
+
 
 if __name__ == "__main__":
 

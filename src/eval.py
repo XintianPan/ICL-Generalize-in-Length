@@ -415,13 +415,14 @@ def conf_to_model_name(conf):
         return {
             (3, 2): "Transformer-xs",
             (6, 4): "Transformer-small",
-            (5, 8): "Transformer-five",
-            (3, 8): "Transformer-three",
-            (1, 8): "Transformer-one",
-            (1, 1): "Transformer-one-one",
-            (1, 2): "Transformer-one-two",
-            (1, 3): "Transformer-one-three",
-            (1, 4): "Transformer-one-four",
+            (5, 8): "Transformer-5-8",
+            (3, 8): "Transformer-3-8",
+            (1, 8): "Transformer-1-8",
+            (1, 1): "Transformer-1-1",
+            (1, 2): "Transformer-1-2",
+            (1, 4): "Transformer-1-4",
+            (1, 3): "Transformer-1-3",
+            (2, 4): "Transformer-2-4",
             (12, 8): "Transformer",
         }[(conf.model.n_layer, conf.model.n_head)]
     else:
@@ -474,7 +475,10 @@ def read_run_dir(run_dir):
                 else None
             )
             params["num_examples"] = num_examples if num_examples is not None else -1
-            params["n_dims"] = conf.model.n_dims
+            try:
+                params["n_dims"] = conf.model.n_dims
+            except AttributeError:
+                continue
             params["n_layer"] = conf.model.n_layer
             params["n_head"] = conf.model.n_head
             params["run_name"] = conf.wandb.name
