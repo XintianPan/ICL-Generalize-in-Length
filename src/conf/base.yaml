@@ -15,8 +15,8 @@ training:
     learning_rate: 0.0001
     save_every_steps: 1000
     keep_every_steps: 100000
-    train_steps: 500001
-    resume_id: stackxy_model_one-four_noise5d_nolyaernormandattnnorm_5
+    train_steps: 1500001
+    resume_id: stackxy_model_one-four_noise5d_nolyaernormandattnnorm_3
     curriculum:
         dims:
             start: 15

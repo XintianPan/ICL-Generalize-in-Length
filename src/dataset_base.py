@@ -252,7 +252,7 @@ class DatasetBase(Dataset):
         Returns:
             int: The length of the dataset.
         """
-        return self.index_to_file_dict["sample_size"] * self.L
+        return self.index_to_file_dict["sample_size"]
 
     def __getitem__(self, idx):
         """
@@ -265,12 +265,12 @@ class DatasetBase(Dataset):
             Any: The data.
         """
         # Determine which file and which sample within the file the index corresponds to
-        zero_index, file_index, sample_index = self._get_file_and_sample_index(idx)
+        file_index, sample_index = self._get_file_and_sample_index(idx)
 
         # Load the file only when it's needed
         data = torch.load(os.path.join(self.data_dir, self.index_to_file_dict[file_index])) if not self.load_data_into_memory else self.data[file_index]
         
-        sample = self.data_method.__transform__(data[sample_index], zero_index=zero_index, **self.data_method_args_dict)
+        sample = self.data_method.__transform__(data[sample_index], zero_index=None, **self.data_method_args_dict)
         return sample
 
     def _get_file_and_sample_index(self, idx):
@@ -284,10 +284,10 @@ class DatasetBase(Dataset):
             Tuple: The index of position to set y as 0, file index and sample index.
         """
         # Determine which position is needed to set y as 0
-        zero_index = idx // self.index_to_file_dict["sample_size"]
+        # zero_index = idx // self.index_to_file_dict["sample_size"]
 
         # Set idx to number within file size
-        idx = idx % self.index_to_file_dict["sample_size"]
+        # idx = idx % self.index_to_file_dict["sample_size"]
 
         # Determine which file the index corresponds to
         file_index = idx // self.index_to_file_dict["num_sample_per_file"]
@@ -295,22 +295,34 @@ class DatasetBase(Dataset):
         # Determine which sample within the file the index corresponds to
         sample_index = idx % self.index_to_file_dict["num_sample_per_file"]
 
-        return zero_index, file_index, sample_index
+        return file_index, sample_index
 
 
 
 if __name__ == "__main__":
     from data_linear import LinearReg
     from data_nonlinear import NonLinearSquareReg
+    from args_parser import get_dataset_parser
+    parser = get_dataset_parser()
+    args = parser.parse_args()
+    n_dim = args.n_dim
+    n_pos = args.n_dim * 8
+    train_size = args.train_size
+    train_size = train_size * 64
+    train_size = train_size / n_pos
+    train_size += 64
+    train_size = int(train_size)
+    print(train_size)
     # data_method = DataMethod({"seq_len": 100, "dim": 10, "noise_scale": 0.1})
-    data_method = LinearReg({"L": 40, "dx": 5, "dy": 1, "number_of_samples": 1, "noise_std": 0.1})
+    dataset_name = "testingsamllnoise" + str(n_dim) + "d"
+    data_method = LinearReg({"L": n_pos, "dx": n_dim, "dy": 1, "number_of_samples": 1, "noise_std": 0.01})
     synthetic_data_generator = SyntheticDataGenerator(
-            data_dir=os.path.join(os.path.dirname(os.path.realpath(__file__)), "noisetestingskewedtwice5d"),
-            train_sample_size=1600400,
-            val_sample_size=1600400,
+            data_dir=os.path.join(os.path.dirname(os.path.realpath(__file__)), dataset_name),
+            train_sample_size=train_size,
+            val_sample_size=train_size,
             test_sample_size=20,
-            num_sample_per_file_train=800,
-            num_sample_per_file_val=800,
+            num_sample_per_file_train=2000,
+            num_sample_per_file_val=2000,
             num_sample_per_file_test=20,
             data_method=data_method,
             data_method_args_dict={}
@@ -323,7 +335,7 @@ if __name__ == "__main__":
     dataset = DatasetBase(
         index_to_file_dict=index_to_file_dict["train"], 
         data_method=data_method,
-        data_method_args_dict={"L": 40})
+        data_method_args_dict={"L": n_pos})
 
     # Get the length of the dataset
     print(len(dataset))

@@ -8,6 +8,20 @@ import seaborn as sns
 
 from args_parser import get_model_parser
 
+def extract_ou(model):
+    '''
+    Extract W_O, W_U from model
+    return tuple (W_O, W_I)
+    '''
+    W_u = model._read_out.weight.detach().cpu()
+    model = model._backbone
+    layer = model.h[0]
+    attention = layer.attn
+
+    W_o = attention.c_proj.weight.detach().cpu() 
+    return W_o, W_u
+
+
 def extract_ov_matrices(model):
     # Extract the embedding matrix
     
@@ -42,7 +56,10 @@ def extract_ov_matrices(model):
 
     W_o = attention.c_proj.weight.detach().cpu() 
 
-    ov_matrices ={
+    ov_matrices = []
+
+    ov_matrices.append(
+        {
             'W_q': W_q.clone(),
             'W_k': W_k.clone(),
             'W_v': W_v.clone(),
@@ -52,7 +69,47 @@ def extract_ov_matrices(model):
             'W_e': W_e.clone(),
             'W_o': W_o.clone(),
             'W_u': W_u,
-    }
+        }
+    )
+    W_o = W_o.transpose(-2, -1)
+
+    W_q = W_q.view(hidden_size, num_heads, head_dim)
+    W_k = W_k.view(hidden_size, num_heads, head_dim)
+    W_v = W_v.view(hidden_size, num_heads, head_dim)
+    W_o = W_o.view(hidden_size, num_heads, head_dim)
+
+
+    b_q = b_q.view(num_heads, head_dim)
+    b_k = b_k.view(num_heads, head_dim)
+    b_v = b_v.view(num_heads, head_dim)
+
+    # Collect matrices for all heads
+
+    for head_idx in range(num_heads):
+        W_q_head = W_q[:, head_idx, :]  # Shape: (hidden_size, head_dim)
+        W_k_head = W_k[:, head_idx, :]
+        W_v_head = W_v[:, head_idx, :]
+
+        b_q_head = b_q[head_idx, :]     # Shape: (head_dim,)
+        b_k_head = b_k[head_idx, :]
+        b_v_head = b_v[head_idx, :]
+
+        W_o_head = W_o[:, head_idx, :]
+
+        W_o_head = W_o_head.transpose(-2, -1)
+
+
+        ov_matrices.append({
+            'W_q': W_q_head,
+            'W_k': W_k_head,
+            'W_v': W_v_head,
+            'b_q': b_q_head,
+            'b_k': b_k_head,
+            'b_v': b_v_head,
+            'W_e': W_e,
+            'W_o': W_o_head,
+            'W_u': W_u,
+        })
     
 
 
@@ -87,7 +144,7 @@ def heatmap_draw_ov_ebmeds(ov_matrices, title):
     my_array = ov_circuit.cpu().numpy()
 
     plt.figure(figsize=(10, 8))
-    sns.heatmap(my_array, cmap='viridis')
+    sns.heatmap(my_array, cmap='viridis', annot=True)
     plt.title(title)
     wandb.log({title: wandb.Image(plt)})
     plt.close()
@@ -96,7 +153,7 @@ def visualize_ov_from_data(run_path, step=-1):
     model, conf = get_model_from_run(run_path, step)
     wandb.init(
             dir=conf.out_dir,
-            project=conf.wandb.project + "-vis-OV",
+            project=conf.wandb.project + "-vis-both",
             entity=conf.wandb.entity,
             config=conf.__dict__,
             notes=conf.wandb.notes,
@@ -106,10 +163,17 @@ def visualize_ov_from_data(run_path, step=-1):
     model = model.cuda().eval()
 
     ov_matrices = extract_ov_matrices(model)
-    title = "OV circuit"
-    heatmap_draw_ov_ebmeds(ov_matrices, title)
-    title = "OV matrix"
-    heatmap_draw_ov(ov_matrices, title)
+    for i, ov in enumerate(ov_matrices):
+        if i == 0:
+            title = "OV circuit"
+        else:
+            title = f"OV circuit for head {i - 1}"
+
+        heatmap_draw_ov_ebmeds(ov, title)
+    # title = "OV circuit"
+    
+    # title = "OV matrix"
+    # heatmap_draw_ov(ov_matrices, title)
 
     wandb.finish()
 

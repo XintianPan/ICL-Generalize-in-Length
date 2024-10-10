@@ -227,7 +227,7 @@ class GPT2ModelWithoutPositionEmbedding(GPT2Model):
 
         # Not use position embeddings
 
-        hidden_states = inputs_embeds
+        hidden_states = inputs_embeds # + position embeddings
 
         if token_type_ids is not None:
             token_type_embeds = self.wte(token_type_ids)

@@ -17,7 +17,7 @@ from dataset_base import DatasetBase
 from torch.utils.data import DataLoader
 from data_linear import LinearReg
 from tasks import squared_error, mean_squared_error
-from visualize_qk import visualize_from_data
+from visualize_both import visualize_both
 from cpl import CPL
 
 import wandb
@@ -25,17 +25,46 @@ import wandb
 torch.backends.cudnn.benchmark = True
 
 
-def train_step(model, xs, ys, optimizer, loss_func):
-    optimizer.zero_grad()
-    output = model(xs, ys)
-    loss = loss_func(output, ys)
-    loss.backward()
-    optimizer.step()
+def train_step(model, xs, ys, optimizer, loss_func, count_id=None, loss_only_zero=False):
+    if not loss_only_zero:
+        if count_id is None:
+            optimizer.zero_grad()
+            output = model(xs, ys)
+            loss = loss_func(output, ys)
+            loss.backward()
+            optimizer.step()
+        else:
+            xs[:, count_id, -1] = 0
+            optimizer.zero_grad()
+            output = model(xs, ys)
+            loss = loss_func(output, ys)
+            loss.backward()
+            optimizer.step()
+    else:
+        assert count_id is not None
+        xs[:, count_id, -1] = 0
+        optimizer.zero_grad()
+        output = model(xs, ys)
+        loss = loss_func(output[:, count_id], ys[:, count_id])
+        loss.backward()
+        optimizer.step()
+
     return loss.detach().item(), output.detach()
 
-def validate_step(model, xs, ys, loss_func):
-    output = model(xs, ys)
-    loss = loss_func(output, ys)
+def validate_step(model, xs, ys, loss_func, count_id=None, loss_only_zero=False):
+    if not loss_only_zero:
+        if count_id is None:
+            output = model(xs, ys)
+            loss = loss_func(output, ys)
+        else:
+            xs[:, count_id, -1] = 0
+            output = model(xs, ys)
+            loss = loss_func(output, ys)
+    else:
+        assert count_id is not None
+        xs[:, count_id, -1] = 0
+        output = model(xs, ys)
+        loss = loss_func(output[:, count_id], ys[:, count_id])        
     return loss.detach().item()
 
 
@@ -76,29 +105,33 @@ def train(model, args):
     )
     pbar = tqdm(range(starting_step, args.training.train_steps))
 
-    data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "noisetesting5d/index_to_file_dict.yaml")
+    title_name = "testingsamllnoise" + str(args.model.n_dims) + "d/index_to_file_dict.yaml"
+
+    data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), title_name)
+
+    L = 8 * n_dims
 
     fp = open(data_dir)
 
     index_to_file_dict = yaml.load(fp)
 
-    data_method = LinearReg({"L": 40, "dx": 5, "dy": 1, "number_of_samples": 1, "noise_std": 0})
+    data_method = LinearReg({"L": 8 * n_dims, "dx": n_dims, "dy": 1, "number_of_samples": 1, "noise_std": 0})
 
     training_dataset = DatasetBase(
         index_to_file_dict=index_to_file_dict["train"], 
         data_method=data_method,
-        data_method_args_dict={"L": 40},
+        data_method_args_dict={"L": 8 * n_dims},
         load_data_into_memory=True
     )
 
     validating_dataset = DatasetBase(
         index_to_file_dict=index_to_file_dict["val"], 
         data_method=data_method,
-        data_method_args_dict={"L": 40},
+        data_method_args_dict={"L": 8 * n_dims},
         load_data_into_memory=True
     )
 
-    train_dataloader = DataLoader(training_dataset, batch_size=64, shuffle=True)
+    train_dataloader = DataLoader(training_dataset, batch_size=64, shuffle=False)
 
     train_iterator = iter(train_dataloader)
 
@@ -107,6 +140,12 @@ def train(model, args):
     val_iterator = iter(val_dataloader)
 
     num_training_examples = args.training.num_training_examples
+
+    counter = L - 1
+    xs, ys, xv, yv = None, None, None, None
+    arr = [i for i in range(0, L)]
+
+    loss_sec = args.training.loss_only_zero
 
     for i in pbar:
         # data_sampler_args = {}
@@ -129,16 +168,22 @@ def train(model, args):
         # task = task_sampler(**task_sampler_args)
         # ys = task.evaluate(xs)
 
-        xs, ys = next(train_iterator)
-        xv, yv = next(val_iterator)
+        counter += 1
+        if counter == L:
+            xs, ys = next(train_iterator)
+            xv, yv = next(val_iterator)
+            counter = 0
+            import random
+            random.shuffle(arr)
 
         loss_func = mean_squared_error
 
-        loss, output = train_step(model, xs.cuda(), ys.cuda(), optimizer, loss_func)
 
-        val_loss = validate_step(model, xv.cuda(), yv.cuda(), loss_func)
+        loss, output = train_step(model, xs.cuda(), ys.cuda(), optimizer, loss_func, arr[counter], loss_sec)
 
-        point_wise_tags = list(range(curriculum.n_points))
+        val_loss = validate_step(model, xv.cuda(), yv.cuda(), loss_func, arr[counter], loss_sec)
+
+        point_wise_tags = list(range(8 * n_dims))
         point_wise_loss_func = squared_error
         point_wise_loss = point_wise_loss_func(output, ys.cuda()).mean(dim=0)
 
@@ -221,7 +266,7 @@ def main(args):
     wandb.finish()
 
     if not args.test_run:
-        visualize_from_data(args.out_dir)
+        visualize_both(args.out_dir)
         _ = get_run_metrics(args.out_dir)  # precompute metrics for eval
 
 

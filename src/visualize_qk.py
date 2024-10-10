@@ -170,7 +170,7 @@ def heatmap_draw_qk(qkv_matrices, title):
     my_array = QK_matrix.cpu().numpy()
 
     plt.figure(figsize=(10, 8))
-    sns.heatmap(my_array, cmap='viridis')
+    sns.heatmap(my_array, cmap='viridis', annot=True)
     plt.title(title)
     wandb.log({title: wandb.Image(plt)})
     plt.close()
@@ -190,8 +190,8 @@ def heatmap_draw_qk_ebmeds(qkv_matrices, title):
 
     my_array = QK_circuit.cpu().numpy()
 
-    plt.figure(figsize=(10, 8))
-    sns.heatmap(my_array, cmap='viridis')
+    plt.figure(figsize=(10 * 2, 8 * 2))
+    sns.heatmap(my_array, cmap='viridis', annot=True)
     plt.title(title)
     wandb.log({title: wandb.Image(plt)})
     plt.close()
