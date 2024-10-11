@@ -10,6 +10,8 @@ from args_parser import get_model_parser
 
 from eval import get_run_metrics, read_run_dir, get_model_from_run
 
+import math
+
 if __name__ == "__main__":
     parser = get_model_parser()
 

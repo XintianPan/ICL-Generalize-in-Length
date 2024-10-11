@@ -58,19 +58,19 @@ def extract_ov_matrices(model):
 
     ov_matrices = []
 
-    ov_matrices.append(
-        {
-            'W_q': W_q.clone(),
-            'W_k': W_k.clone(),
-            'W_v': W_v.clone(),
-            'b_q': b_q.clone(),
-            'b_k': b_k.clone(),
-            'b_v': b_v.clone(),
-            'W_e': W_e.clone(),
-            'W_o': W_o.clone(),
-            'W_u': W_u,
-        }
-    )
+    # ov_matrices.append(
+    #     {
+    #         'W_q': W_q.clone(),
+    #         'W_k': W_k.clone(),
+    #         'W_v': W_v.clone(),
+    #         'b_q': b_q.clone(),
+    #         'b_k': b_k.clone(),
+    #         'b_v': b_v.clone(),
+    #         'W_e': W_e.clone(),
+    #         'W_o': W_o.clone(),
+    #         'W_u': W_u,
+    #     }
+    # )
     W_o = W_o.transpose(-2, -1)
 
     W_q = W_q.view(hidden_size, num_heads, head_dim)
@@ -164,10 +164,7 @@ def visualize_ov_from_data(run_path, step=-1):
 
     ov_matrices = extract_ov_matrices(model)
     for i, ov in enumerate(ov_matrices):
-        if i == 0:
-            title = "OV circuit"
-        else:
-            title = f"OV circuit for head {i - 1}"
+        title = f"OV circuit for head {i}"
 
         heatmap_draw_ov_ebmeds(ov, title)
     # title = "OV circuit"

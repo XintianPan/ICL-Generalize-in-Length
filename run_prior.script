@@ -10,7 +10,7 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem-per-cpu=10g
 #SBATCH --time=48:00:00
-#SBATCH --array=5,10,15,20,40,40,50
+#SBATCH --array=5,10,15,20,30,40,50
 
 module load CUDA
 module load cuDNN
@@ -31,13 +31,19 @@ wandb login "$API_KEY"
 # This is used for training, after training, it will automatically visualize QK circuit and evaluate model
 # Training model needs to initialize dataset first, commands for generate dataset is provided as below
 
-name_first="model_one-four_noattnout_"
-name_last="d_8"
+name_first="model_one-two_noattnout_normx_weighttying_onlyqueryloss_"
+name_last="d_1"
 model_name="$name_first$SLURM_ARRAY_TASK_ID$name_last"
 
 n_dim=$SLURM_ARRAY_TASK_ID
 
-python src/train.py --config src/conf/linear_regression.yaml --model.n_dims $n_dim --training.resume_id $model_name --wandb.name $model_name --training.loss_only_zero False --training.train_steps 500001
+python src/train.py --config src/conf/linear_regression.yaml \
+  --model.n_dims $n_dim \
+  --training.resume_id $model_name \
+  --wandb.name $model_name \
+  --training.loss_only_zero True \
+  --training.train_steps 500001 \
+  --model.weight_tying True
 
 # If only want to evaluate model, use below command
 # python src/get_eval.py --dir /home/xc425/project/models --runid stackxy_model_one-four_noise15d_qlen_nolyaernormandattnnorm_2

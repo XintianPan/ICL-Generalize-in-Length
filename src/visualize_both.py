@@ -23,12 +23,8 @@ def visualize_both(run_path, step=-1):
     qkv_matrices = extract_qkv_matrices(model)
 
     for i, (ov, qk) in enumerate(zip(ov_matrices, qkv_matrices)):
-        if i == 0:
-            title_ov = "OV circuit"
-            title_qk = "QK circuit"
-        else:
-            title_ov = f"OV circuit for head {i - 1}"
-            title_qk = f"QK circuit for head {i - 1}"
+        title_ov = f"OV circuit for head {i}"
+        title_qk = f"QK circuit for head {i}"
 
         heatmap_draw_ov_ebmeds(ov, title_ov)
         heatmap_draw_qk_ebmeds(qk, title_qk)

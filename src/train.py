@@ -22,12 +22,16 @@ from cpl import CPL
 
 import wandb
 
+from weight_tying import tie_head_weights_qk
+
 torch.backends.cudnn.benchmark = True
 
 
-def train_step(model, xs, ys, optimizer, loss_func, count_id=None, loss_only_zero=False):
+def train_step(model, xs, ys, optimizer, loss_func, count_id=None, loss_only_zero=False, weight_tying=False):
     if not loss_only_zero:
         if count_id is None:
+            if weight_tying:
+                tie_head_weights_qk(model)
             optimizer.zero_grad()
             output = model(xs, ys)
             loss = loss_func(output, ys)
@@ -42,6 +46,8 @@ def train_step(model, xs, ys, optimizer, loss_func, count_id=None, loss_only_zer
             optimizer.step()
     else:
         assert count_id is not None
+        if weight_tying:
+            tie_head_weights_qk(model)
         xs[:, count_id, -1] = 0
         optimizer.zero_grad()
         output = model(xs, ys)
@@ -105,7 +111,7 @@ def train(model, args):
     )
     pbar = tqdm(range(starting_step, args.training.train_steps))
 
-    title_name = "testingsamllnoise" + str(args.model.n_dims) + "d/index_to_file_dict.yaml"
+    title_name = "testingnorm" + str(args.model.n_dims) + "d/index_to_file_dict.yaml"
 
     data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), title_name)
 
@@ -140,6 +146,8 @@ def train(model, args):
     val_iterator = iter(val_dataloader)
 
     num_training_examples = args.training.num_training_examples
+
+    tying_flag = args.model.weight_tying
 
     counter = L - 1
     xs, ys, xv, yv = None, None, None, None
@@ -179,7 +187,7 @@ def train(model, args):
         loss_func = mean_squared_error
 
 
-        loss, output = train_step(model, xs.cuda(), ys.cuda(), optimizer, loss_func, arr[counter], loss_sec)
+        loss, output = train_step(model, xs.cuda(), ys.cuda(), optimizer, loss_func, arr[counter], loss_sec, weight_tying=tying_flag)
 
         val_loss = validate_step(model, xv.cuda(), yv.cuda(), loss_func, arr[counter], loss_sec)
 

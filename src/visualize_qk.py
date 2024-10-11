@@ -38,17 +38,7 @@ def extract_qkv_matrices(model):
     b_v = c_attn_bias[2*hidden_size:]
 
     qkv_matrices = []
-    qkv_matrices.append(
-        {
-            'W_q': W_q.clone(),
-            'W_k': W_k.clone(),
-            'W_v': W_v.clone(),
-            'b_q': b_q.clone(),
-            'b_k': b_k.clone(),
-            'b_v': b_v.clone(),
-            'W_e': W_e.clone(),
-        }
-    )
+
 
     n_dim = W_e.shape[1]
 
@@ -182,11 +172,14 @@ def heatmap_draw_qk_ebmeds(qkv_matrices, title):
     Wk = qkv_matrices['W_k']
     We = qkv_matrices['W_e']
 
+    _, norm_dim = Wq.shape
+
     Wk_t = Wk.transpose(0, 1)
     We_t = We.transpose(0, 1)
     QK_circuit = torch.matmul(We_t, Wq)
     QK_circuit = torch.matmul(QK_circuit, Wk_t)
     QK_circuit = torch.matmul(QK_circuit, We)
+    QK_circuit = QK_circuit * ((norm_dim) ** -5)
 
     my_array = QK_circuit.cpu().numpy()
 
@@ -211,12 +204,8 @@ def visualize_qk_from_data(run_path, step=-1):
 
     qkv_matrices = extract_qkv_matrices(model)
     embeds = model._read_in.weight.detach().cpu()
-    for i in range(conf.model.n_head + 1):
-        title = None
-        if i == 0:
-            title = "QK matrix heatmap"
-        else:
-            title = f"QK matrix heatmap for head {i - 1}"
+    for i in range(conf.model.n_head):
+        title = f"QK matrix heatmap for head {i}"
         
         # heatmap_draw_qk(qkv_matrices[i], title)
         heatmap_draw_qk_ebmeds(qkv_matrices[i], title)

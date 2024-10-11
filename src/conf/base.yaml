@@ -1,5 +1,5 @@
 inherit: 
-    - models/one-four.yaml
+    - models/one-two.yaml
     - wandb.yaml
 
 model:
@@ -7,6 +7,7 @@ model:
     n_positions: 2001
     type: stackxy
     layer_norm: no_attn_out
+    weight_tying: False
 
 training:
     data: gaussian

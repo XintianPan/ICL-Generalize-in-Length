@@ -12,6 +12,8 @@ from args_parser import get_model_parser
 
 from visualize_ov import extract_ou
 
+import math
+
 
 def visualize_result(matrix, title):
     '''
@@ -21,7 +23,7 @@ def visualize_result(matrix, title):
     matrix_nd = matrix.cpu().numpy()
 
     plt.figure(figsize=(10, 8))
-    sns.heatmap(matrix_nd, cmap='viridis')
+    sns.heatmap(matrix_nd, cmap='viridis', annot=True)
     plt.title(title)
     wandb.log({title: wandb.Image(plt)})
     plt.close()
@@ -81,7 +83,7 @@ def visualize_attention_ov(W_u, W_o, matrices, title):
 
 
 
-def f(x, beta, qk_circuit):
+def f(x, beta, qk_circuit, embd_dim=16):
     '''
     Compute z @ W_e^T @ W_q @ W_k^T @ W_e @ z[:, -1:, :]^T
     '''
@@ -91,10 +93,11 @@ def f(x, beta, qk_circuit):
     z2 = z1.clone()
     z1[:, -1, -1] = 0
     z2[:, -1, -1] = 0
-    z2 = z2[:, -1:, :]
+    # z1 = z1[:, -1, :]
     z2 = z2.transpose(-2, -1)
 
     ret = z1 @ qk_circuit @ z2
+    ret = ret / math.sqrt(embd_dim)
     return ret
     
 def sample_x(L, n_dims):
@@ -110,52 +113,12 @@ def sample_beta(L, n_dims):
     beta = torch.einsum('nxy,xy->nxy', beta, G)
     return beta
 
-def sample_fix_beta(steps=10, L=100, n_dims=0):
-    beta = sample_beta(L, n_dims)
-    for i in range(steps):
-        title = f"QK Analyze: Fixed Beta - {i}"
-
-def sample_only_change_last_x(qkv, qk_circuit, steps=10, L=100, n_dims=0, head_name=""):
-    x_pre = sample_x(L - 1, n_dims)
-    beta = sample_beta(L, n_dims)
-    W_e = qkv['W_e']
-    W_v = qkv['W_v']
-    for i in range(steps):
-        title = f"QK Analyze: Change Last x " + head_name + f" - step{i}"
-        x_last = sample_x(1, n_dims)
-        x = torch.cat([x_pre, x_last], dim=1)
-        ret = f(x, beta, qk_circuit)
-        visualize_attention_v(x, beta, W_e, W_v, ret, title)
-
-def sample_only_change_last_x_ov(model, qkv_matrices, steps=10, L=100, n_dims=0):
-    W_o, W_u = extract_ou(model)
-    x_pre = sample_x(L - 1, n_dims)
-    beta = sample_beta(L, n_dims)
-    x_y_data = []
-    for i in range(steps):
-        title = f"Full attention OV Analyze: Change Last x - step{i}"
-        x_last = sample_x(1, n_dims)
-        x = torch.cat([x_pre, x_last], dim=1)
-        matrices = []
-        for qkv in qkv_matrices:
-            qk_circuit = qk_circuit_compute(qkv)
-            W_e = qkv['W_e']
-            W_v = qkv['W_v']
-            ret = f(x, beta, qk_circuit)
-            ret = compute_attention_v(x, beta, W_e, W_v, ret)
-            matrices.append(ret)
-        last_true = x[0, -1, -1]
-        last_val = visualize_attention_ov(W_u, W_o, matrices, title)
-        x_y = (last_val.tolist(), last_true.tolist())
-        x_y_data.append(x_y)
-
-    mean_table = wandb.Table(data=x_y_data, columns=["val", "true"])
-    mean_title = "True - val graph"
-    mean_plot = wandb.plot.scatter(mean_table, x='val', y='true', title=mean_title)
-    wandb.log({
-        mean_title: mean_plot,
-    })
-
+def softmax_score_cal(qkv, L=20, n_dims=10, embd_dim=16):
+    x = sample_x(L, n_dims=n_dims)
+    beta = sample_beta(L, n_dims=n_dims)
+    qk_circuit = qk_circuit_compute(qkv)
+    rel = f(x, beta, qk_circuit, embd_dim=embd_dim)
+    return rel
 
 def qk_analyze(run_path, step=-1):
     model, conf = get_model_from_run(run_path=run_path, step=step)
@@ -171,14 +134,16 @@ def qk_analyze(run_path, step=-1):
     model.cuda().eval()
     qkv_matrices = extract_qkv_matrices_head_only(model)
     n_dims = conf.model.n_dims
+    n_embd = conf.model.n_embd // 4
 
     
-    sample_only_change_last_x_ov(model, qkv_matrices, steps=10000, L=200, n_dims=n_dims)
-    # for i, qkv in enumerate(qkv_matrices):
-    #     qk_circuit = qk_circuit_compute(qkv)
-    #     head_name = f"for Head {i}"
-    #     heatmap_draw_qk_ebmeds(qkv, f"Head {i}")
-    #     sample_only_change_last_x(qkv, qk_circuit, steps=5, L=40, n_dims=n_dims, head_name=head_name)
+    for i, qkv in enumerate(qkv_matrices):
+        print(i)
+        head_name = f"Softmax Score for Head {i}"
+        heatmap_draw_qk_ebmeds(qkv, f"QK circuit for Head {i}")
+        rel = softmax_score_cal(qkv, L=20, n_dims=n_dims, embd_dim=n_embd)
+        visualize_result(rel[0, :, :], head_name)
+
 
 
 
@@ -189,8 +154,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     run_dir = args.dir
-
-    df = read_run_dir(run_dir)
 
     task = "linear_regression"
     #task = "sparse_linear_regression"

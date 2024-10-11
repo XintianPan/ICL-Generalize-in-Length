@@ -300,7 +300,7 @@ class DatasetBase(Dataset):
 
 
 if __name__ == "__main__":
-    from data_linear import LinearReg
+    from data_linear import LinearReg, LinearRegNormX
     from data_nonlinear import NonLinearSquareReg
     from args_parser import get_dataset_parser
     parser = get_dataset_parser()
@@ -314,8 +314,8 @@ if __name__ == "__main__":
     train_size = int(train_size)
     print(train_size)
     # data_method = DataMethod({"seq_len": 100, "dim": 10, "noise_scale": 0.1})
-    dataset_name = "testingsamllnoise" + str(n_dim) + "d"
-    data_method = LinearReg({"L": n_pos, "dx": n_dim, "dy": 1, "number_of_samples": 1, "noise_std": 0.01})
+    dataset_name = "testingnorm" + str(n_dim) + "d"
+    data_method = LinearRegNormX({"L": n_pos, "dx": n_dim, "dy": 1, "number_of_samples": 1, "noise_std": 0.01})
     synthetic_data_generator = SyntheticDataGenerator(
             data_dir=os.path.join(os.path.dirname(os.path.realpath(__file__)), dataset_name),
             train_sample_size=train_size,
