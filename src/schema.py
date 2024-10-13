@@ -30,6 +30,7 @@ model_schema = {
     "type": merge(tstring, allowed(["stackxy", "nostack"])),
     "layer_norm": merge(tstring, allowed(LAYER_NORM_LIST), default("use_norm")),
     "weight_tying": merge(tboolean, default(False)),
+    "causal_type": merge(tstring, allowed(["prev", "curr"]), default("curr"))
 }
 
 curriculum_base_schema = {

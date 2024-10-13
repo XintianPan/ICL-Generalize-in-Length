@@ -8,8 +8,8 @@ def tie_head_weights_qk(model):
     W = model._backbone.h[0].attn.c_attn.weight
     b = model._backbone.h[0].attn.c_attn.bias
 
-    hidden_size = model.config.hidden_size
-    num_heads = model.config.num_attention_heads
+    hidden_size = model._backbone.config.hidden_size
+    num_heads = model._backbone.config.num_attention_heads
     head_dim = hidden_size // num_heads
 
     W_reshaped = W.view(hidden_size, 3, num_heads, head_dim)

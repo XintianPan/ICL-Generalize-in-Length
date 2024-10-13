@@ -9,10 +9,11 @@ from sklearn import tree
 import random
 from base_models import NeuralNetwork, ParallelNetworks
 
-from modfied_gpt2 import (
+from modified_gpt2 import (
     GPT2ModelWithoutPositionEmbedding,
     GPT2ModelWithoutPositionEmbeddingAndLayerNorm,
-    GPT2ModelWithoutPositionEmbeddingAndLayerNormAndAttentionNorm
+    GPT2ModelWithoutPositionEmbeddingAndLayerNormAndAttentionNorm,
+    GPT2ModelWithoutPositionEmbeddingNoLayerNormAttentionOnlyPrev
 )
 
 def model_selection(conf):
@@ -26,7 +27,14 @@ def model_selection(conf):
         gpt2model = GPT2ModelWithoutPositionEmbeddingAndLayerNorm
     elif conf.layer_norm == "no_attn_out":
         # Not use any layer norm
-        gpt2model = GPT2ModelWithoutPositionEmbeddingAndLayerNormAndAttentionNorm
+        try:
+            if conf.causal_type == "prev":
+                # Only attend to tokens strictly preceding the current token
+                gpt2model = GPT2ModelWithoutPositionEmbeddingNoLayerNormAttentionOnlyPrev
+            else:
+                gpt2model = GPT2ModelWithoutPositionEmbeddingAndLayerNormAndAttentionNorm
+        except:
+            gpt2model = GPT2ModelWithoutPositionEmbeddingAndLayerNormAndAttentionNorm
 
     return gpt2model        
 

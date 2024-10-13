@@ -13,6 +13,7 @@ from transformers import GPT2Model, GPT2Config
 
 from model_outputs import BaseModelOutputWithPastAndCrossAttentions
 from huggingface_gpt2 import GPT2Attention, GPT2MLP
+from modified_causal_mask import GPT2AttentionOnlyPrev
 
 class GPT2BlockNoLayerNorm(nn.Module):
     def __init__(self, config, layer_idx=None):
@@ -123,6 +124,13 @@ class GPT2BlockNoLayerNorm(nn.Module):
             outputs = (hidden_states,) + outputs[1:]  # Skip past key values if not using cache
 
         return outputs  # Return hidden_states, present, (attentions, cross_attentions)
+
+class GPT2BlockNoLayerNormWithAttentionOnlyPrev(GPT2BlockNoLayerNorm):
+    def __init__(self, config, layer_idx=None):
+        super().__init__(config, layer_idx)
+        self.attn = GPT2AttentionOnlyPrev(config, layer_idx=layer_idx)
+
+
 
 
 class GPT2ModelWithoutPositionEmbedding(GPT2Model):
@@ -545,3 +553,13 @@ class GPT2ModelWithoutPositionEmbeddingAndLayerNormAndAttentionNorm(GPT2ModelWit
         super().__init__(config)
         self.h = nn.ModuleList([GPT2BlockNoLayerNorm(config, layer_idx=i) for i in range(config.num_hidden_layers)])
         self.post_init()
+
+class GPT2ModelWithoutPositionEmbeddingNoLayerNormAttentionOnlyPrev(GPT2ModelWithoutPositionEmbeddingAndLayerNorm):
+    # Most of the settings are the same as GPT2ModelWithoutPositionEmbeddingAndLayerNorm
+    # However in this setting, we use GPT2Block which does not apply any layer norm
+    # Therefore in this model, there is no layer norm layer anywhere
+    def __init__(self, config):
+        super().__init__(config)
+        self.h = nn.ModuleList([GPT2BlockNoLayerNormWithAttentionOnlyPrev(config, layer_idx=i) for i in range(config.num_hidden_layers)])
+        self.post_init()
+        print(type(self.h[0]).__name__)

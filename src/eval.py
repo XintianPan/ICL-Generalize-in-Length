@@ -51,6 +51,16 @@ def stackingmethod_evaluate(model, xs, ys, device, task):
     return metrics
 
 
+def stackingmethod_evaluate_onlyprev(model, xs, ys, device, task):
+    b_size, n_points, _ = xs.shape
+    # metrics = torch.zeros(b_size, n_points)
+    ys_b = ys.view(xs.shape[0], xs.shape[1], 1)
+    xs_b = torch.cat([xs, ys_b], dim=2)
+    pred = model(xs_b.to(device), ys.to(device)).detach()
+    metrics = task.get_metric()(pred.cpu(), ys)
+    return metrics
+
+
 
 
 
@@ -64,7 +74,7 @@ def eval_batch(model, task_sampler, xs, xs_p=None):
     if xs_p is None:
         ys = task.evaluate(xs)
         if device == "cuda":
-            metrics = stackingmethod_evaluate(model, xs, ys, device, task)
+            metrics = stackingmethod_evaluate_onlyprev(model, xs, ys, device, task)
         else:
             pred = model(xs.to(device), ys.to(device)).detach()
             metrics = task.get_metric()(pred.cpu(), ys)
@@ -77,10 +87,11 @@ def eval_batch(model, task_sampler, xs, xs_p=None):
             if device == "cuda":
                 ys_b = ys.view(b_size, n_points, 1)
                 xs_b = torch.cat([xs_comb, ys_b], dim=2)
-                xs_b[:, i, -1] = 0
+                # xs_b[:, i, -1] = 0
                 pred = model(xs_b.to(device), ys.to(device), inds=[i]).detach()
             else:
                 pred = model(xs_comb.to(device), ys.to(device), inds=[i]).detach()
+            # pred = model(xs_comb.to(device), ys.to(device), inds=[i]).detach()
             metrics[:, i] = task.get_metric()(pred.cpu(), ys)[:, i]
 
     return metrics

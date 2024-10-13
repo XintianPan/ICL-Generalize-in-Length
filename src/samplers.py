@@ -56,5 +56,5 @@ class GaussianSampler(DataSampler):
             xs_b += self.bias
         if n_dims_truncated is not None:
             xs_b[:, :, n_dims_truncated:] = 0
-        xs_b = xs_b / math.sqrt(self.n_dims) # Add normalize over n_dims
+        # xs_b = xs_b / math.sqrt(self.n_dims) # Add normalize over n_dims
         return xs_b

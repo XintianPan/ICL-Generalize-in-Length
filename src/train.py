@@ -111,47 +111,49 @@ def train(model, args):
     )
     pbar = tqdm(range(starting_step, args.training.train_steps))
 
-    title_name = "testingnorm" + str(args.model.n_dims) + "d/index_to_file_dict.yaml"
+    # title_name = "testingnorm" + str(args.model.n_dims) + "d/index_to_file_dict.yaml"
 
-    data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), title_name)
+    # data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), title_name)
 
-    L = 8 * n_dims
+    L = 10 * n_dims
 
-    fp = open(data_dir)
+    # fp = open(data_dir)
 
-    index_to_file_dict = yaml.load(fp)
+    # index_to_file_dict = yaml.load(fp)
 
-    data_method = LinearReg({"L": 8 * n_dims, "dx": n_dims, "dy": 1, "number_of_samples": 1, "noise_std": 0})
+    train_method = LinearReg({"L": L, "dx": n_dims, "dy": 1, "number_of_samples": 64, "noise_std": 0.01})
 
-    training_dataset = DatasetBase(
-        index_to_file_dict=index_to_file_dict["train"], 
-        data_method=data_method,
-        data_method_args_dict={"L": 8 * n_dims},
-        load_data_into_memory=True
-    )
+    val_method = LinearReg({"L": L, "dx": n_dims, "dy": 1, "number_of_samples": 16, "noise_std": 0.01})
 
-    validating_dataset = DatasetBase(
-        index_to_file_dict=index_to_file_dict["val"], 
-        data_method=data_method,
-        data_method_args_dict={"L": 8 * n_dims},
-        load_data_into_memory=True
-    )
+    # training_dataset = DatasetBase(
+    #     index_to_file_dict=index_to_file_dict["train"], 
+    #     data_method=data_method,
+    #     data_method_args_dict={"L": 8 * n_dims},
+    #     load_data_into_memory=True
+    # )
 
-    train_dataloader = DataLoader(training_dataset, batch_size=64, shuffle=False)
+    # validating_dataset = DatasetBase(
+    #     index_to_file_dict=index_to_file_dict["val"], 
+    #     data_method=data_method,
+    #     data_method_args_dict={"L": 8 * n_dims},
+    #     load_data_into_memory=True
+    # )
 
-    train_iterator = iter(train_dataloader)
+    # train_dataloader = DataLoader(training_dataset, batch_size=64, shuffle=False)
 
-    val_dataloader = DataLoader(validating_dataset, batch_size=16, shuffle=True)
+    # train_iterator = iter(train_dataloader)
 
-    val_iterator = iter(val_dataloader)
+    # val_dataloader = DataLoader(validating_dataset, batch_size=16, shuffle=True)
+
+    # val_iterator = iter(val_dataloader)
 
     num_training_examples = args.training.num_training_examples
 
     tying_flag = args.model.weight_tying
 
-    counter = L - 1
-    xs, ys, xv, yv = None, None, None, None
-    arr = [i for i in range(0, L)]
+    # counter = L - 1
+    # xs, ys, xv, yv = None, None, None, None
+    # arr = [i for i in range(0, L)]
 
     loss_sec = args.training.loss_only_zero
 
@@ -176,22 +178,30 @@ def train(model, args):
         # task = task_sampler(**task_sampler_args)
         # ys = task.evaluate(xs)
 
-        counter += 1
-        if counter == L:
-            xs, ys = next(train_iterator)
-            xv, yv = next(val_iterator)
-            counter = 0
-            import random
-            random.shuffle(arr)
+        # counter += 1
+        # if counter == L:
+        #     xs, ys = next(train_iterator)
+        #     xv, yv = next(val_iterator)
+        #     counter = 0
+        #     import random
+        #     random.shuffle(arr)
+
+        train_data = train_method.__generatedata__()
+
+        xs, ys = train_method.__transform__(train_data)
+
+        val_data = val_method.__generatedata__()
+
+        xv, yv = val_method.__transform__(val_data)
 
         loss_func = mean_squared_error
 
 
-        loss, output = train_step(model, xs.cuda(), ys.cuda(), optimizer, loss_func, arr[counter], loss_sec, weight_tying=tying_flag)
+        loss, output = train_step(model, xs.cuda(), ys.cuda(), optimizer, loss_func, None, loss_sec, weight_tying=tying_flag)
 
-        val_loss = validate_step(model, xv.cuda(), yv.cuda(), loss_func, arr[counter], loss_sec)
+        val_loss = validate_step(model, xv.cuda(), yv.cuda(), loss_func, None, loss_sec)
 
-        point_wise_tags = list(range(8 * n_dims))
+        point_wise_tags = list(range(L))
         point_wise_loss_func = squared_error
         point_wise_loss = point_wise_loss_func(output, ys.cuda()).mean(dim=0)
 
